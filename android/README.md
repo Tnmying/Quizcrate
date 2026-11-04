@@ -4,7 +4,7 @@
 
 题匣使用 Kotlin、Jetpack Compose 和 Room 开发。应用包名为 `com.offlinequiz.app`，支持 Android 10（API 29）及以上，compileSdk/targetSdk 为 36。
 
-当前版本为 **28 / `0.4m-single-review`**。当前版本已完成真机功能检查，暂未发现问题；295 项 JVM 测试及调试构建通过。功能和使用方法见 [项目 README](../README.md)。
+当前版本为 **0.1.0**（内部版本号 29）。release 构建和 295 项 JVM 测试通过；此前测试版已完成真机功能检查，新正式签名包待安装确认。功能和使用方法见 [项目 README](../README.md)。
 
 ## 构建环境
 
@@ -30,13 +30,27 @@ APK 输出到 `android/app/build/outputs/apk/debug/app-debug.apk`。如果使用
 
 `tools/android-build.ps1` 是使用项目内依赖的构建入口，会将 APK 复制到 `outputs/apk/`；使用时请显式指定一个新的 `-ApkName`，避免覆盖同名包。
 
+## Release 构建与签名
+
+`tools/android-release.ps1` 会运行 release 单元测试、构建和 Lint，完成 ZIP 对齐、正式签名及签名校验，并生成 APK 与 SHA-256 文件。JDK/SDK 默认为项目 `work/` 下的依赖，也可通过 `-Jdk` 和 `-Sdk` 指定。
+
+签名材料须提前准备。默认位置为本地忽略目录 `local-inputs/signing/` 下的 `quizcrate-release.p12` 和 `keystore-password.txt`，别名为 `quizcrate-release`；也可使用 `-Keystore`、`-PasswordFile`、`-KeyAlias` 指定自己的材料。私钥和密码应安全备份，不随源码或 APK 分发。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/android-release.ps1
+```
+
+首次获取缺失的 Gradle/Maven 检查依赖时加 `-Online`；需要强制完整重建时加 `-RerunTasks`。产物位于 `outputs/releases/<版本>/`，同名发布包已存在时脚本会停止，避免覆盖。
+
+旧调试版与正式包的签名不同，换装前应在应用内导出备份。后续正式版更新继续使用同一正式签名和递增的内部版本号。
+
 ## 测试
 
 - `app/src/test/`：JVM 逻辑、服务、控制器与会话测试。
 - `app/src/androidTest/`：Android Room、迁移、事务、备份、PDF 存储等设备自动化测试。
 - `tools/pdf-probe/run-tests.ps1`：共享 PDF 解析器的合成回归；没有私有样本时跳过私有样本部分。
 
-当前版本已通过真机手动检查。另有 28 项设备自动化测试已完成编译，尚未在设备上运行。
+此前测试版已通过真机手动检查；0.1.0 正式签名包待安装确认。另有 28 项设备自动化测试尚未在设备上运行。
 
 连接测试设备后，可执行：
 
@@ -48,4 +62,4 @@ APK 输出到 `android/app/build/outputs/apk/debug/app-debug.apk`。如果使用
 
 模块划分、数据兼容性和判题规则见 [架构说明](../docs/ARCHITECTURE.md)。依赖及资源许可见 [第三方材料与许可说明](../THIRD_PARTY_NOTICES.md)。
 
-当前构建配置排除了部分 `META-INF/LICENSE/NOTICE`；正式分发 APK 前需核对最终依赖，并补齐随包许可材料。
+部分重复的 `META-INF/LICENSE/NOTICE` 由打包配置排除；对应依赖及资源的许可原文与版权声明保留在 APK 的 `assets/third_party/`。

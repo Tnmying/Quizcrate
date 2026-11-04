@@ -10,6 +10,8 @@ outputs/
 local.properties
 *.keystore
 *.jks
+*.p12
+*.pfx
 
 # Build dependencies and IDE state
 node_modules/

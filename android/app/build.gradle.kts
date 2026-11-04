@@ -29,9 +29,16 @@ android {
         applicationId = "com.offlinequiz.app"
         minSdk = 29
         targetSdk = 36
-        versionCode = 28
-        versionName = "0.4m-single-review"
+        versionCode = 29
+        versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        getByName("release") {
+            isDebuggable = false
+            isMinifyEnabled = false
+        }
     }
 
     buildFeatures {

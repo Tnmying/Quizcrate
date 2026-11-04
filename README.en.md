@@ -10,9 +10,9 @@ The project documentation is available in Chinese and English. **The app interfa
 
 ## Current status
 
-Version: **28 / `0.4m-single-review`** (2026-11-04). This repository contains source code, tests, an original sample PDF, and documentation. No APK download is available yet. The current local APK is a **debug build**, not a release-signed distribution.
+Version: **0.1.0**, internal version code **29** (2026-11-04). The first public release-signed APK has been built locally and is awaiting an installation check. No APK download is available yet.
 
-Manual functional checks on a physical phone have passed with no issues found so far. All 295 JVM tests and the debug build have also passed.
+Core features passed manual phone checks in the previous test build, with no issues found so far. The 0.1.0 release build and all 295 JVM tests have passed; the release-signed APK still needs its final phone installation check.
 
 ## Features
 
@@ -45,7 +45,7 @@ The sample has seven questions, including one deliberately missing an answer to 
 - Selected PDFs are copied to private app storage; the original file is not deleted. There is no account synchronization, so export backups yourself.
 - Backups are unencrypted ZIP files. A failing document provider may leave a partial export; the app reports the failure.
 - Database schema version is 3; backup format version is 1. The current app accepts older backups. New backups containing single-question review sessions are not guaranteed to work in version 27 or earlier.
-- Source code is available now. APK downloads will follow once release signing, upgrade arrangements, and distribution materials are ready.
+- Source code is available now. The release-signed APK will be offered through GitHub Releases after its installation check.
 
 ## Building from source
 
@@ -79,7 +79,7 @@ Original project code and accompanying documentation are available under the [MI
 
 Third-party code, fonts, and resources retain their own licenses. The project license does not replace or relicense them.
 
-See [third-party notices](THIRD_PARTY_NOTICES.en.md) and [original license texts](docs/licenses/). Notices shipped with the final APK still need to be checked before distribution.
+See [third-party notices](THIRD_PARTY_NOTICES.en.md) and [original license texts](docs/licenses/). License and copyright notices are bundled under `assets/third_party/` in the APK.
 
 ## Repository layout
 

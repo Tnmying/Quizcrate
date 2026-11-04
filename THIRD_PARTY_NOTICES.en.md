@@ -2,7 +2,7 @@
 
 [简体中文](THIRD_PARTY_NOTICES.md) | **English**
 
-Reviewed: 2026-11-04, application version 28 / `0.4m-single-review`.
+Reviewed: 2026-11-04, application version 29 / `0.1.0`.
 
 This document lists dependencies, build tools, examples, and resources. Each component retains its original license. Original Quizcrate code and accompanying documentation use the root [MIT License](LICENSE); third-party code, fonts, and resources retain their own terms.
 
@@ -35,6 +35,6 @@ The standard Apache 2.0 text is in [Apache-2.0.txt](docs/licenses/Apache-2.0.txt
 - The PDF embeds a Noto Serif SC subset under SIL OFL 1.1. Preserve the [OFL text](docs/licenses/Noto-Serif-OFL-1.1.txt) and [copyright/license metadata from the local source font](docs/licenses/Noto-Serif-SC-font-metadata.txt). The generator derives a compatibility-cmap copy only in `work/`; the full font is not committed.
 - The icon source is `docs/design/assets/tixia-icon-concept-v1.png`, used to prepare the launcher icon. See [development acknowledgments](ACKNOWLEDGMENTS.en.md) for assistance used during development.
 
-## Before distributing an APK
+## License materials bundled in the APK
 
-The source includes a dependency index and major license materials. The current `android/app/build.gradle.kts` excludes some `META-INF/LICENSE/NOTICE` entries. Before distributing an APK, check the final dependencies and resources, include readable notices, and verify PdfBox-Android fonts/CMaps, transitive dependencies, and the final distribution package.
+The APK retains project MIT, Apache 2.0, Bouncy Castle, full PDFBox/FontBox LICENSE/NOTICE texts, metadata from the actual LiberationSans font, and license texts extracted from dependency AAR/JAR files under `assets/third_party/`. The PDFBox license file covers AFM, CMap, glyph mappings, and Liberation font terms. Some duplicate `META-INF/LICENSE/NOTICE` entries are excluded by the packaging configuration; the retained assets must accompany redistributed APKs.

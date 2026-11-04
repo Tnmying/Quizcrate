@@ -1,0 +1,17 @@
+Quizcrate 0.1.0 - third-party materials
+
+Original application code: Copyright (c) 2026 Tnmying, MIT License.
+
+Runtime dependencies include AndroidX/Compose/Room, Kotlin and kotlinx.coroutines
+(Apache License 2.0); PdfBox-Android 2.0.27.0 by Tom Roush and contributors,
+based on Apache PDFBox/FontBox; and Bouncy Castle 1.72 (upstream permissive terms).
+
+The full Apache PDFBox/FontBox LICENSE and NOTICE files are retained here,
+including Adobe AFM/CMap/glyph-list, Unicode, Liberation font, and other
+resource notices. LiberationSans font metadata is copied from the exact bundled
+font. Runtime license texts found in the resolved AAR/JAR files are also retained.
+
+See runtime-license-metadata.tsv for dependency coordinates and upstream license
+fields. Empty Maven license fields do not replace the upstream terms.
+
+All third-party components remain under their respective licenses.

@@ -2,7 +2,7 @@
 
 **简体中文** | [English](THIRD_PARTY_NOTICES.en.md)
 
-核对日期：2026-11-04，应用版本 28 / `0.4m-single-review`。
+核对日期：2026-11-04，应用版本 29 / `0.1.0`。
 
 本文记录项目使用的源码依赖、构建工具、示例和资源来源；各组件继续遵循原许可证。题匣项目原创代码与随附文档采用根目录 [MIT 许可证](LICENSE)；第三方代码、字体及资源继续遵循各自原许可证。
 
@@ -35,6 +35,6 @@
 - 示例 PDF 内嵌 Noto Serif SC 字体子集。字体使用 SIL OFL 1.1；保留 [OFL 原文](docs/licenses/Noto-Serif-OFL-1.1.txt)及[实际本机源字体的版权/许可元数据](docs/licenses/Noto-Serif-SC-font-metadata.txt)。生成脚本仅在 `work/` 派生兼容性 cmap 副本，完整字体文件不上传。
 - 项目图标源文件位于 `docs/design/assets/tixia-icon-concept-v1.png`，用于制作启动图标。辅助工具的使用说明见 [开发与致谢](ACKNOWLEDGMENTS.md)。
 
-## APK 分发前待核对
+## APK 随包许可材料
 
-源码中包含依赖索引和主要许可材料。当前 `android/app/build.gradle.kts` 排除了部分 `META-INF/LICENSE/NOTICE`，正式分发 APK 前需按最终依赖及资源补齐随包可读声明，并核对 PdfBox-Android 内部字体/CMap、传递依赖和最终发行包。
+APK 的 `assets/third_party/` 保留项目 MIT、Apache 2.0、Bouncy Castle、PDFBox/FontBox 完整 LICENSE/NOTICE、实际 LiberationSans 字体元数据，以及从依赖 AAR/JAR 提取的许可原文。PDFBox 许可文件包含 AFM、CMap、字形映射和 Liberation 字体相关条款。部分重复的 `META-INF/LICENSE/NOTICE` 由打包配置排除，随包原文集中在上述 assets 目录，分发时应一并保留。

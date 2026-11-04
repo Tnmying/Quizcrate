@@ -4,7 +4,7 @@
 
 Quizcrate uses Kotlin, Jetpack Compose, and Room. The application ID is `com.offlinequiz.app`; minimum Android version is 10 (API 29), with compileSdk/targetSdk 36.
 
-Current version: **28 / `0.4m-single-review`**. Manual functional checks on a physical phone have passed with no issues found so far. All 295 JVM tests and the debug build have passed. See the [project README](../README.en.md) for features and usage. The app interface is currently in Chinese.
+Current version: **0.1.0**, internal version code **29**. The release build and all 295 JVM tests have passed. Core features passed manual phone checks in the previous test build; the new release-signed APK awaits an installation check. See the [project README](../README.en.md) for features and usage. The app interface is currently in Chinese.
 
 ## Build environment
 
@@ -30,13 +30,27 @@ The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. An ex
 
 `tools/android-build.ps1` supports dependencies stored inside the project and copies the APK to `outputs/apk/`. Pass a new `-ApkName` explicitly to avoid overwriting an existing build.
 
+## Release builds and signing
+
+`tools/android-release.ps1` runs release unit tests, builds the APK, runs Lint, aligns the ZIP, signs it, and verifies the signature. It outputs an APK and SHA-256 file. JDK/SDK defaults point into the project's `work/` directory; override them with `-Jdk` and `-Sdk`.
+
+Prepare signing material first. Defaults are `quizcrate-release.p12` and `keystore-password.txt` in the ignored local `local-inputs/signing/` directory, with alias `quizcrate-release`. Override these with `-Keystore`, `-PasswordFile`, and `-KeyAlias`. Back up the private key and password securely; do not distribute them with source code or APKs.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/android-release.ps1
+```
+
+Use `-Online` to fetch missing Gradle/Maven check dependencies, or `-RerunTasks` for a forced rebuild. Outputs go to `outputs/releases/<version>/`. The script stops if the final APK already exists, avoiding an overwrite.
+
+Old debug builds and the release APK use different signing certificates. Export a backup before switching installations. Future release updates must continue using the same release key and increasing internal version codes.
+
 ## Tests
 
 - `app/src/test/`: JVM logic, services, controllers, and session tests.
 - `app/src/androidTest/`: device automation for Room, migrations, transactions, backups, and PDF storage.
 - `tools/pdf-probe/run-tests.ps1`: synthetic parser regression tests; private-sample checks are skipped when the sample is absent.
 
-Manual phone checks have passed. A separate set of 28 device automation tests has been compiled but has not yet been run on a device.
+The previous test build passed manual phone checks; the 0.1.0 release-signed APK awaits its installation check. The separate set of 28 device automation tests has not yet been run on a device.
 
 With a test device connected:
 
@@ -48,4 +62,4 @@ With a test device connected:
 
 See [architecture and data design](../docs/ARCHITECTURE.en.md) for module boundaries, compatibility, and grading rules, and [third-party notices](../THIRD_PARTY_NOTICES.en.md) for dependencies and resources.
 
-The current packaging configuration excludes some `META-INF/LICENSE/NOTICE` files. The final dependency set and notices included with the APK need to be checked before distribution.
+Some duplicate `META-INF/LICENSE/NOTICE` files are excluded by the packaging configuration; dependency and resource license texts and copyright notices are retained under `assets/third_party/` in the APK.
