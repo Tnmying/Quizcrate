@@ -1,5 +1,7 @@
 # 题匣 Android 开发说明
 
+**简体中文** | [English](README.en.md)
+
 题匣使用 Kotlin、Jetpack Compose 和 Room 开发。应用包名为 `com.offlinequiz.app`，支持 Android 10（API 29）及以上，compileSdk/targetSdk 为 36。
 
 当前版本为 **28 / `0.4m-single-review`**。当前版本已完成真机功能检查，暂未发现问题；295 项 JVM 测试及调试构建通过。功能和使用方法见 [项目 README](../README.md)。

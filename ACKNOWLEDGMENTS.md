@@ -1,5 +1,7 @@
 # 开发与致谢
 
+**简体中文** | [English](ACKNOWLEDGMENTS.en.md)
+
 Quizcrate（题匣）是一个安卓 PDF 题库项目，希望让学习资料可以离线使用、随时复习。
 
 开发过程中使用了以下辅助工具：
