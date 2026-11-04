@@ -24,8 +24,8 @@ import org.junit.runner.RunWith
 /**
  * Device-only coverage for Room transactions and isolation.
  *
- * Not executed in this environment because no Android device/emulator is available. Compile with
- * :app:assembleDebugAndroidTest and run on the RMX3800 via the checklist in docs/reports.
+ * Compile with :app:assembleDebugAndroidTest and run on a connected Android device
+ * with :app:connectedDebugAndroidTest.
  */
 @RunWith(AndroidJUnit4::class)
 class QuizDatabaseTest {

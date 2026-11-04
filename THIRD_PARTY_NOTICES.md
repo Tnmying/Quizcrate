@@ -2,7 +2,7 @@
 
 核对日期：2026-11-04，应用版本 28 / `0.4m-single-review`。
 
-本文件记录源码、构建工具、示例和依赖的来源，不替代各组件原许可证。题匣项目原创代码与随附文档采用根目录 [MIT 许可证](LICENSE)；第三方代码、字体及资源继续遵循各自原许可证。
+我在这里记录项目使用的源码依赖、构建工具、示例和资源来源；各组件继续遵循原许可证。题匣项目原创代码与随附文档采用根目录 [MIT 许可证](LICENSE)；第三方代码、字体及资源继续遵循各自原许可证。
 
 ## 应用依赖
 
@@ -14,7 +14,7 @@
 | Bouncy Castle | `bcprov-jdk15to18`、`bcpkix-jdk15to18`、`bcutil-jdk15to18` 1.72，PDFBox 传递依赖 | [该版本许可原文](docs/licenses/Bouncy-Castle-1.72-LICENSE.html)，上游版权及宽松许可声明 |
 | Guava listenablefuture | 1.0，AndroidX 传递依赖 | [Guava Apache-2.0 原文](https://github.com/google/guava/blob/v26.0/LICENSE)，该组件缓存 POM 未直接列出许可，保留为上游核对项 |
 
-本轮**实际运行成功** `:app:dependencies --configuration debugRuntimeClasspath --offline`，不执行应用构建/测试。图中 111 个去重坐标（包含 BOM/约束引用，不能等同于 111 个 APK 内二进制）及缓存 POM 原始许可字段见 [runtime-license-metadata.tsv](docs/licenses/runtime-license-metadata.tsv)。4 个坐标的 POM 未直接列出许可，已在上表说明；不能把 POM 缺字段解释成没有许可。
+我使用 `:app:dependencies --configuration debugRuntimeClasspath --offline` 生成运行依赖报告。图中 111 个去重坐标（包含 BOM/约束引用，不能等同于 111 个 APK 内二进制）及缓存 POM 原始许可字段见 [runtime-license-metadata.tsv](docs/licenses/runtime-license-metadata.tsv)。4 个坐标的 POM 未直接列出许可，已在上表说明；不能把 POM 缺字段解释成没有许可。
 
 通用 Apache 2.0 原文保存在 [Apache-2.0.txt](docs/licenses/Apache-2.0.txt)。具体版权和 NOTICE 仍应按实际组件保留，不能只用这份通用文本代替全部声明。
 
@@ -31,8 +31,8 @@
 
 - `examples/offlinequiz-example.pdf` 和生成源码是项目自制 7 题示例，不包含私有真实题库。
 - 示例 PDF 内嵌 Noto Serif SC 字体子集。字体使用 SIL OFL 1.1；保留 [OFL 原文](docs/licenses/Noto-Serif-OFL-1.1.txt)及[实际本机源字体的版权/许可元数据](docs/licenses/Noto-Serif-SC-font-metadata.txt)。生成脚本仅在 `work/` 派生兼容性 cmap 副本，完整字体文件不上传。
-- `docs/design/assets/` 中图标和暖色界面示意图为既有 AI 生成素材；来源见 [品牌设计记录](docs/design/app-branding.md)。界面示意图不是当前应用实拍截图；图像不以第三方软件许可证冒充项目授权。
+- 我保留项目图标源文件 `docs/design/assets/tixia-icon-concept-v1.png`，供启动图标制作使用。辅助工具的使用说明见 [开发与致谢](ACKNOWLEDGMENTS.md)。
 
 ## APK 分发前待核对
 
-本轮完成源码上传准备所需的依赖索引和主要许可材料收集，**不宣称正式 APK 许可审查完成**。当前 `android/app/build.gradle.kts` 排除了部分 `META-INF/LICENSE/NOTICE`，后续分发 APK 时需按最终依赖及资源补齐随包可读声明，并核对 PdfBox-Android 内部字体/CMap、传递依赖和最终发行包。本轮不改打包配置、不重新签名或发布。
+我在源码中保留了依赖索引和主要许可材料。当前 `android/app/build.gradle.kts` 排除了部分 `META-INF/LICENSE/NOTICE`，正式分发 APK 前，我会按最终依赖及资源补齐随包可读声明，并核对 PdfBox-Android 内部字体/CMap、传递依赖和最终发行包。

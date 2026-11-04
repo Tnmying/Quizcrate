@@ -24,7 +24,7 @@ import org.junit.runner.RunWith
 /**
  * Device-only coverage for the private PDF copy and page renderer.
  *
- * Not executed here (no device/emulator). Run via the checklist in docs/reports/02b-device-checklist.md.
+ * Run on a connected Android device with :app:connectedDebugAndroidTest.
  */
 @RunWith(AndroidJUnit4::class)
 class PdfStorageDeviceTest {

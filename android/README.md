@@ -1,47 +1,49 @@
 # 题匣 Android 开发说明
 
-原生 Kotlin + Jetpack Compose + Room，完全离线；应用包名 `com.offlinequiz.app`，minSdk 29，compileSdk/targetSdk 36。
+我使用 Kotlin、Jetpack Compose 和 Room 开发题匣。应用包名为 `com.offlinequiz.app`，支持 Android 10（API 29）及以上，compileSdk/targetSdk 为 36。
 
-当前版本 **28 / `0.4m-single-review`**，功能与已知限制见 [项目 README](../README.md)。当前版已有 295 项 JVM 测试及完整构建通过、3 项桌面内存 SQLite 检查通过；28 项设备测试只编译未运行。用户确认当前版手机完整检查通过，Codex 未进行独立设备验收。当前改动总记录见 [DSH_HANDOFF](../docs/DSH_HANDOFF.md)。
+当前版本为 **28 / `0.4m-single-review`**。我已完成当前版本的真机功能检查，暂未发现问题；295 项 JVM 测试及调试构建通过。功能和使用方法见 [项目 README](../README.md)。
 
 ## 构建环境
 
-JDK 21、Android SDK platform 36 / build-tools 36.0.0、Gradle 8.13 wrapper、AGP 8.13.2、Kotlin 2.2.21、KSP 2.2.21-2.0.5。首次构建需联网获取 Gradle/Maven 依赖，缓存齐全后可加 `--offline`。
+- JDK 21
+- Android SDK platform 36 / build-tools 36.0.0
+- Gradle 8.13 wrapper、AGP 8.13.2
+- Kotlin 2.2.21、KSP 2.2.21-2.0.5
 
-普通开发环境的构建命令见根 README。本项目现有机器使用项目内依赖；以下从项目根目录运行，只设置当前终端环境，不改系统设置：
+首次构建需要联网下载依赖；缓存齐全后可以加 `--offline`。手机运行不需要网络。
+
+从项目根目录运行以下 PowerShell 命令，并将 JDK/SDK 路径换成本机的实际位置：
 
 ```powershell
-$env:JAVA_HOME = (Resolve-Path './work/jdk-21.0.13+9').Path
-$env:ANDROID_HOME = (Resolve-Path './work/android-sdk').Path
+$env:JAVA_HOME = '你的 JDK 21 绝对路径'
+$env:ANDROID_HOME = '你的 Android SDK 绝对路径'
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$env:ANDROID_USER_HOME = (Resolve-Path './work/android-user-home').Path
-$env:GRADLE_USER_HOME = (Resolve-Path './work/gradle-user-home').Path
-& ./android/gradlew.bat --project-dir ./android --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
+$env:GRADLE_USER_HOME = Join-Path $PWD 'work/gradle-user-home'
+$env:ANDROID_USER_HOME = Join-Path $PWD 'work/android-user-home'
+& ./android/gradlew.bat --project-dir ./android --no-daemon :app:testDebugUnitTest :app:assembleDebug
 ```
 
-`work/` 不上传，新获取源码者需自行准备依赖并调整路径。`android/local.properties` 属于本机配置，不上传。
+APK 输出到 `android/app/build/outputs/apk/debug/app-debug.apk`。如果使用 `android/local.properties`，其中的 SDK 路径也应与本机一致。
 
-- 应用 APK：`android/app/build/outputs/apk/debug/app-debug.apk`。
-- 设备测试 APK 编译成功不代表设备测试运行成功；连接测试设备后单独运行 `:app:connectedDebugAndroidTest`。
-- 现有封装脚本 `tools/android-build.ps1` 使用项目内 SDK，并复制包到 `outputs/apk/`；必须显式提供一个**从未使用过的新文件名**作为 `-ApkName`，脚本会覆盖同名文件。README 不再提供会覆盖历史包的固定输出名。
-- 本次只更新文档，未重新构建、签名或生成 APK。
+我保留了 `tools/android-build.ps1` 作为项目内依赖的构建入口。它会将 APK 复制到 `outputs/apk/`；使用时请显式指定一个新的 `-ApkName`，避免覆盖同名包。
 
-## 关键实现约定
-
-- 解析规则以 `tools/pdf-probe/src/pdfprobe/Model.java` 和 `QuestionParser.java` 为唯一源，由 `stageCoreSources` 同步到构建生成目录，不能修改生成副本。
-- 数据库 `offlinequiz.db`、Room schema 3，显式迁移，禁止清库或 destructive fallback；schema 历史随源码保留。
-- 练习采用固定题目快照、幂等作答、草稿保存与写入中离页保护；修改题库不重写旧会话。
-- 单题错题复习使用 `single_review` 来源，与已有普通/批量错题整轮共存，不计整库完成遍数。
-- 备份格式 1，恢复创建新 ID 和独立副本，保留旧库；新单题复习记录与旧版应用的兼容边界见根 README。
-- PDF 与备份使用系统 SAF；私有 PDF 位于 `files/libraries/<libraryId>/source.pdf`。应用不申请 INTERNET、广泛存储或相机权限。
-
-## 第三方许可
-
-见 [第三方材料说明](../THIRD_PARTY_NOTICES.md)。当前 Gradle 配置排除了部分 `META-INF/LICENSE/NOTICE`；正式 APK 分发前需核对最终依赖与资源，保留随包许可材料。本次不改构建打包行为，也不把文档整理视为 APK 许可验收完成。
-
-## 验证入口
+## 测试
 
 - `app/src/test/`：JVM 逻辑、服务、控制器与会话测试。
-- `app/src/androidTest/`：Room、事务、备份、PDF 存储、迁移与整轮/单题隔离测试，需设备执行。
-- `tools/pdf-probe/run-tests.ps1`：共享解析合成回归，无私有样本时跳过私有样本检查。
-- [早期手机清单](../docs/reports/04a-device-checklist.md)为历史流程材料，不是当前版逐项实测记录。
+- `app/src/androidTest/`：Android Room、迁移、事务、备份、PDF 存储等设备自动化测试。
+- `tools/pdf-probe/run-tests.ps1`：共享 PDF 解析器的合成回归；没有私有样本时跳过私有样本部分。
+
+我已完成真机手动检查；另外保留的 28 项设备自动化测试目前只完成编译，尚未在设备上运行。这两类检查使用不同的流程。
+
+连接测试设备后，可执行：
+
+```powershell
+& ./android/gradlew.bat --project-dir ./android :app:connectedDebugAndroidTest
+```
+
+## 架构和许可
+
+我的模块划分、数据兼容性和判题规则见 [架构说明](../docs/ARCHITECTURE.md)。依赖及资源许可见 [第三方材料与许可说明](../THIRD_PARTY_NOTICES.md)。
+
+当前构建配置排除了部分 `META-INF/LICENSE/NOTICE`；我会在正式分发 APK 前核对最终依赖，并补齐随包许可材料。
