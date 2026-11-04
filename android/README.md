@@ -4,7 +4,7 @@
 
 题匣使用 Kotlin、Jetpack Compose 和 Room 开发。应用包名为 `com.offlinequiz.app`，支持 Android 10（API 29）及以上，compileSdk/targetSdk 为 36。
 
-当前版本为 **0.1.0**（内部版本号 29）。release 构建和 295 项 JVM 测试通过；此前测试版已完成真机功能检查，新正式签名包待安装确认。功能和使用方法见 [项目 README](../README.md)。
+当前版本为 **0.1.0**（内部版本号 29），已作为首个公开测试版发布；[正式签名 APK 与发布说明](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0)可直接获取。release 构建和 295 项 JVM 测试通过；此前测试版已完成真机功能检查。功能和使用方法见 [项目 README](../README.md)。
 
 ## 构建环境
 
@@ -50,7 +50,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/android-release.ps
 - `app/src/androidTest/`：Android Room、迁移、事务、备份、PDF 存储等设备自动化测试。
 - `tools/pdf-probe/run-tests.ps1`：共享 PDF 解析器的合成回归；没有私有样本时跳过私有样本部分。
 
-此前测试版已通过真机手动检查；0.1.0 正式签名包待安装确认。另有 28 项设备自动化测试尚未在设备上运行。
+此前测试版已通过真机手动检查。另有 28 项设备自动化测试尚未在设备上运行。
 
 连接测试设备后，可执行：
 

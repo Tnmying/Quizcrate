@@ -10,9 +10,13 @@
 
 ## 当前状态
 
-当前版本：**0.1.0**（内部版本号 29，2026-11-04）。首个公开版本的正式签名 APK 已在本地制作，等待安装确认，暂未提供 APK 下载链接。
+当前版本：**0.1.0**（内部版本号 29，2026-11-04），首个公开测试版，提供正式签名的 release APK。
 
-核心功能已在此前测试版完成真机检查，暂未发现问题；0.1.0 的 release 构建及 295 项 JVM 测试已通过，正式签名安装包待手机确认。
+**[下载 Android APK](https://github.com/Tnmying/Quizcrate/releases/download/v0.1.0/Quizcrate-0.1.0.apk)** · [查看发布说明](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0)
+
+在安卓手机上下载并打开 APK，按系统提示安装。需要 Android 10 及以上。
+
+核心功能已在此前测试版完成真机检查，暂未发现问题；0.1.0 的 release 构建及 295 项 JVM 测试已通过。
 
 ## 功能
 
@@ -45,7 +49,7 @@
 - PDF 经系统选择器授权后复制到应用私有目录；原文件不被删除。应用无账号同步，请自行导出备份。
 - 备份为未加密 ZIP；文件提供方异常时可能留下未完成的导出文件，应用会提示失败。
 - 数据库 schema 为 3，备份格式为 1。旧备份可由当前版导入；包含单题复习记录的新备份，不保证能导入版本 27 及更早应用。
-- 当前提供源码，正式签名 APK 确认后将通过 GitHub Releases 提供下载。
+- 源码与安装包分别提供，正式签名 APK 可从 [GitHub Releases](https://github.com/Tnmying/Quizcrate/releases) 下载。
 
 ## 从源码构建
 

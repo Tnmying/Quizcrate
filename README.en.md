@@ -10,9 +10,13 @@ The project documentation is available in Chinese and English. **The app interfa
 
 ## Current status
 
-Version: **0.1.0**, internal version code **29** (2026-11-04). The first public release-signed APK has been built locally and is awaiting an installation check. No APK download is available yet.
+Version: **0.1.0**, internal version code **29** (2026-11-04). The first public preview is available as a release-signed APK.
 
-Core features passed manual phone checks in the previous test build, with no issues found so far. The 0.1.0 release build and all 295 JVM tests have passed; the release-signed APK still needs its final phone installation check.
+**[Download the Android APK](https://github.com/Tnmying/Quizcrate/releases/download/v0.1.0/Quizcrate-0.1.0.apk)** · [Release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0)
+
+Download and open the APK on your Android phone, then follow the installation prompts. Requires Android 10 or later.
+
+Core features passed manual phone checks in the previous test build, with no issues found so far. The 0.1.0 release build and all 295 JVM tests have passed.
 
 ## Features
 
@@ -45,7 +49,7 @@ The sample has seven questions, including one deliberately missing an answer to 
 - Selected PDFs are copied to private app storage; the original file is not deleted. There is no account synchronization, so export backups yourself.
 - Backups are unencrypted ZIP files. A failing document provider may leave a partial export; the app reports the failure.
 - Database schema version is 3; backup format version is 1. The current app accepts older backups. New backups containing single-question review sessions are not guaranteed to work in version 27 or earlier.
-- Source code is available now. The release-signed APK will be offered through GitHub Releases after its installation check.
+- Source code and installation packages are provided separately. Download release-signed APKs from [GitHub Releases](https://github.com/Tnmying/Quizcrate/releases).
 
 ## Building from source
 
