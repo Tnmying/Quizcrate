@@ -1,6 +1,6 @@
 # PDF 解析工具
 
-我用这个桌面工具检查文字型 PDF 的解析行为，并与安卓应用共享题目模型和解析规则。它使用 Apache PDFBox 2.0.27，按字形坐标重建文本、提取下划线，并输出题目 JSON 和定位信息。
+这个桌面工具用于检查文字型 PDF 的解析行为，与安卓应用共享题目模型和解析规则。它使用 Apache PDFBox 2.0.27，按字形坐标重建文本、提取下划线，并输出题目 JSON 和定位信息。
 
 ## 运行环境
 
@@ -18,7 +18,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pdf-probe/run.ps1 
 
 如果找不到 JDK，可加 `-Jdk '本机 JDK 绝对路径'`。可用 `-RenderPages '1'` 指定渲染页面，或用 `-NoRender` 关闭渲染。
 
-我将依赖放在 `tools/pdf-probe/lib/`，编译输出放在 `tools/pdf-probe/build/`，解析结果放在指定的 `work/` 子目录。这些本地文件不随源码分发。
+依赖保存在 `tools/pdf-probe/lib/`，编译输出位于 `tools/pdf-probe/build/`，解析结果位于指定的 `work/` 子目录。这些本地文件不随源码分发。
 
 ## 回归测试
 
@@ -35,4 +35,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pdf-probe/run-test
 - `raw/`：重建文本、字形/线段坐标和实际运行命令。
 - `render/`：指定页面的预览图。
 
-我只在本地保留真实文档及完整解析结果。公开演示使用 [自制示例](../../examples/README.md)，解析规则与安卓接入方式见 [架构说明](../../docs/ARCHITECTURE.md)。
+真实文档及完整解析结果仅保存在本地。公开演示使用 [自制示例](../../examples/README.md)，解析规则与安卓接入方式见 [架构说明](../../docs/ARCHITECTURE.md)。
