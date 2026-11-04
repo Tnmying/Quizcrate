@@ -6,6 +6,7 @@
 
 ## 当前结论与下一步
 
+- **源码首次公开上传完成（2026-11-04）**：按用户明确授权，将已审查的 257 个文件上传至 `https://github.com/Tnmying/Quizcrate` 的 main。源码导入提交 `1449985178c878cc3deea178cec1b93f043a5d99`，其 Git tree `3d1aaa82bd3f4b1b7f47c7d8949859cb6e5a4e4e` 与本地首次提交目录树完全一致；远端递归清单实际核对 257 个文件、无截断、无 APK/真实样本/本机依赖路径。本机 CLI 首次 push 因未登录而退出 128，已改用现有 GitHub 连接器成功上传，未新增或提取凭据。随后从公开仓库 fetch 成功，保留原本地根提交于分支 `local-initial-source-before-github-import`，仅使用 soft reset 对齐同目录树历史并配置 main 跟踪 origin/main；未丢弃或覆盖工作文件。最后同步本文、上传清单和需求入口的完成状态。应用代码未改，未重新构建/测试，未发布 APK 或 Release；后续 APK 分发与实拍截图仍另行安排。
 - **首次公开上传授权（2026-11-04）**：用户明确“选好了直接上传”，授权将已审查的 257 个源码/文档文件首次提交并推送到 `Tnmying/Quizcrate` 的 main；不上传 APK、真实 PDF/题库、备份、密钥或本机依赖。上传前实际暂存复核通过；本条记录授权与执行准备，最终成功与否须以推送结果及远端文件核对为准，不能将本条视为已完成上传。
 - **GitHub 仓库已创建（2026-11-04）**：用户提供 `https://github.com/Tnmying/Quizcrate`，连接器已实际核对为 Tnmying 所有的公开空仓库（size 0、分支列表为空、连接报告具备 push 权限）。更新 README 和上传清单，准备初始化本地 main、关联 origin 并暂存经审查的文件。尚未提交或推送，不提供 APK 下载；旧“尚未创建仓库”描述保留为历史。
 - **首次上传准备完成**：已实际初始化根 `.git`、分支 main，origin 指向 `https://github.com/Tnmying/Quizcrate.git`；暂存 257 个文件，其路径与此前审查候选清单完全一致，并检查实际暂存 blob，凭据模式命中 0、被禁止的本地资料路径 0。证据在 `work/github-prep-20261104/staged-files.json`、`staged-verification.json`，检查入口为 `verify-staged.py`；旧检查脚本中“根无 .git”断言仅适用于初始化前历史阶段。未创建 commit、未 push、未上传 APK，待用户确认首次公开上传。
