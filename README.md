@@ -2,8 +2,6 @@
 
 题匣是一个完全离线的安卓 PDF 题库刷题应用。导入含参考答案的**文字型 PDF**，在手机本地解析、校对和练习，查看错题与统计，并备份自己的学习记录。
 
-英文项目名为 **Quizcrate**，GitHub 仓库为 [Tnmying/Quizcrate](https://github.com/Tnmying/Quizcrate)；现有工程代号 OfflineQuiz 和安卓包名保持不变。
-
 无需登录、服务器、联网 AI 或运行时模型；应用不申请网络权限。支持 **Android 10（API 29）及以上**。
 
 ## 当前状态
