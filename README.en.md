@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-I built Quizcrate to turn study PDFs into a question bank you can take with you. Import a **text-based PDF with reference answers** to review the extracted questions, practice, revisit mistakes, and keep your learning history offline on your Android phone.
+Quizcrate turns study PDFs into a question bank you can take with you. Import a **text-based PDF with reference answers** to review the extracted questions, practice, revisit mistakes, and keep your learning history offline on your Android phone.
 
 No account, server, online AI, or runtime model is required. The app does not request network permission. Requires **Android 10 (API 29) or later**.
 
@@ -16,7 +16,7 @@ The blue-and-white **v0.2.0** preview is available on GitHub as a release-signed
 
 Download and open the APK on your Android phone, then follow the installation prompts. Requires Android 10 or later.
 
-In **v0.2.0**, I introduced a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. I tested an in-place upgrade from the signed v0.1.0 APK on Android 16 and verified that it preserved the sample question bank and completed practice records.
+**v0.2.0** adds a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. An in-place upgrade from the signed v0.1.0 APK on Android 16 preserved the sample question bank and completed practice records.
 
 ## Features
 
@@ -94,4 +94,4 @@ examples/          Original PDF sample, generator, and expected results
 docs/              Architecture, icon assets, and third-party licenses
 ```
 
-I describe the technical choices and the tools I used during development in these two guides. [Architecture and data design](docs/ARCHITECTURE.en.md) · [Development acknowledgments](ACKNOWLEDGMENTS.en.md)
+[Architecture and data design](docs/ARCHITECTURE.en.md) covers the technical choices. [Development acknowledgments](ACKNOWLEDGMENTS.en.md) lists the tools used during development.
