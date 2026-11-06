@@ -4,7 +4,7 @@
 
 题匣使用 Kotlin、Jetpack Compose 和 Room 开发。应用包名为 `com.offlinequiz.app`，支持 Android 10（API 29）及以上，compileSdk/targetSdk 为 36。
 
-当前公开版本为 **v0.1.0**（内部版本号 29）。功能和使用方法见项目 README。[正式签名 APK 与发布说明](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0) · [项目 README](../README.md)
+最新公开 APK 为 **v0.2.0**（内部版本号 30）。当前仓库应用源码和 v0.2.0 标签的源码归档仍对应 v0.1.0（内部版本号 29）。功能和使用方法见项目 README。[正式签名 APK 与发布说明](https://github.com/Tnmying/Quizcrate/releases/tag/v0.2.0) · [项目 README](../README.md)
 
 ## 构建环境
 

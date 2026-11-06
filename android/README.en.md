@@ -4,7 +4,7 @@
 
 Quizcrate uses Kotlin, Jetpack Compose, and Room. The application ID is `com.offlinequiz.app`; minimum Android version is 10 (API 29), with compileSdk/targetSdk 36.
 
-The current public release is **v0.1.0** (version code 29). The project README covers features and usage. [Release-signed APK and release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0) · [Project README](../README.en.md)
+The latest public APK is **v0.2.0** (version code 30). The application source in this repository and the source archives for the v0.2.0 tag still correspond to v0.1.0 (version code 29). The project README covers features and usage. [Release-signed APK and release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.2.0) · [Project README](../README.en.md)
 
 ## Build environment
 

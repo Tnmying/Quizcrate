@@ -10,13 +10,13 @@ The project documentation is available in Chinese and English. **The app interfa
 
 ## Current status
 
-The release-signed APK currently available on GitHub is **v0.1.0**.
+The blue-and-white **v0.2.0** preview is available on GitHub as a release-signed APK.
 
-**[Download the Android APK](https://github.com/Tnmying/Quizcrate/releases/download/v0.1.0/Quizcrate-0.1.0.apk)** · [Release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0)
+**[Download the Android APK](https://github.com/Tnmying/Quizcrate/releases/download/v0.2.0/Quizcrate-0.2.0.apk)** · [Release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.2.0)
 
 Download and open the APK on your Android phone, then follow the installation prompts. Requires Android 10 or later.
 
-The upcoming **v0.2.0** introduces a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. An in-place upgrade from the signed v0.1.0 APK on Android 16 preserved the sample question bank and completed practice records. The instructions below apply to the current public release.
+**v0.2.0** introduces a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. An in-place upgrade from the signed v0.1.0 APK on Android 16 preserved the sample question bank and completed practice records.
 
 ## Features
 
@@ -27,16 +27,16 @@ The upcoming **v0.2.0** introduces a blue-and-white interface, a glass question-
 - **Grading and self-assessment**: single choice and true/false use the reference answer; multiple choice requires an exact option match. Fill-in-the-blank supports acceptable alternatives. Fill-in-the-blank and short answers also support answering mentally and then marking an answer as remembered or not remembered. Short-answer text similarity is only a comparison aid, not automatic grading.
 - **Mistake review**: filter pending review or all historical mistakes, retry a batch, or tap a card to practice just one question. Single-question review preserves the existing full session and draft. A correct answer or a remembered self-assessment updates review status without deleting past mistakes.
 - **Statistics**: correct/remembered and incorrect/not remembered are grouped. Answered-question totals and completed regular rounds are separate. Finishing a regular round counts as one pass even if some questions were skipped; single-question review does not count as a full-bank pass.
-- **Navigation for large banks**: jump by question number, drag the side slider, and return from editing without losing the list position.
+- **Navigation for large banks**: search by question or option text, drag the side slider, and return from editing without losing the list position.
 - **Local backup and restore**: export banks, practice history, drafts, and available source PDFs. Preview a backup before restoring it as a separate copy, without overwriting existing banks.
 
 ## Getting started
 
 1. Prepare a text-based PDF containing reference answers, or try the original [seven-question sample](examples/offlinequiz-example.pdf).
-2. Choose “导入新题库” (Import new question bank) on the home screen, select the PDF, review the result, and save it with a name.
+2. Choose “导入 PDF” (Import PDF) on the “学习” (Study) tab, select the PDF, review the result, and save it with a name.
 3. Correct missing or uncertain answers flagged as needing attention. Other questions can be practiced directly.
 4. Start sequential or random practice, then check statistics and mistakes. Tap a mistake card for single-question review.
-5. Use “备份与恢复” (Backup and restore) to save your data to a location you choose. **Backups are not encrypted** and should be stored carefully.
+5. Open “备份与恢复” (Backup and restore) under “我的” (Profile) to save your data to a location you choose. **Backups are not encrypted** and should be stored carefully.
 
 The sample has seven questions, including one deliberately missing an answer to demonstrate editing. Its answers and expected parsing output are in the [sample guide](examples/README.en.md).
 
