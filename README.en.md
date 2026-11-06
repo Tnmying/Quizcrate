@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-Quizcrate is a fully offline Android app that turns study PDFs into a question bank. Import a **text-based PDF with reference answers**, review the extracted questions, practice, revisit mistakes, and keep your learning history on your phone.
+I built Quizcrate to turn study PDFs into a question bank you can take with you. Import a **text-based PDF with reference answers** to review the extracted questions, practice, revisit mistakes, and keep your learning history offline on your Android phone.
 
 No account, server, online AI, or runtime model is required. The app does not request network permission. Requires **Android 10 (API 29) or later**.
 
@@ -16,7 +16,7 @@ The blue-and-white **v0.2.0** preview is available on GitHub as a release-signed
 
 Download and open the APK on your Android phone, then follow the installation prompts. Requires Android 10 or later.
 
-**v0.2.0** introduces a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. An in-place upgrade from the signed v0.1.0 APK on Android 16 preserved the sample question bank and completed practice records.
+In **v0.2.0**, I introduced a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. I tested an in-place upgrade from the signed v0.1.0 APK on Android 16 and verified that it preserved the sample question bank and completed practice records.
 
 ## Features
 
@@ -67,15 +67,15 @@ $env:ANDROID_USER_HOME = Join-Path $PWD 'work/android-user-home'
 & ./android/gradlew.bat --project-dir ./android --no-daemon :app:testDebugUnitTest :app:assembleDebug
 ```
 
-Output: `android/app/build/outputs/apk/debug/app-debug.apk`. If `android/local.properties` exists, make sure its SDK path matches your setup; it is not included in the repository. More details and device-test commands are in the [Android development guide](android/README.en.md).
+Output: `android/app/build/outputs/apk/debug/app-debug.apk`. If `android/local.properties` exists, make sure its SDK path matches your setup. More details and device-test commands are in the [Android development guide](android/README.en.md).
 
-The parser's synthetic regression tests can run independently without the private sample. The script downloads and verifies PDFBox dependencies on its first run:
+The parser's regression tests use synthetic questions and can run on their own. The script downloads and verifies PDFBox dependencies on its first run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pdf-probe/run-tests.ps1 -Jdk $env:JAVA_HOME
 ```
 
-Without `local-inputs/sample.pdf`, the private-sample checks are skipped. Do not upload personal question banks to run the tests. See the [parser guide](tools/pdf-probe/README.en.md) for test prerequisites and font-related skips.
+See the [parser guide](tools/pdf-probe/README.en.md) for test prerequisites and font-related skips.
 
 ## License and third-party materials
 
@@ -92,9 +92,6 @@ android/           Kotlin + Jetpack Compose + Room app, tests, and schemas
 tools/             Build scripts, shared PDF parser, and regression tests
 examples/          Original PDF sample, generator, and expected results
 docs/              Architecture, icon assets, and third-party licenses
-local-inputs/      Private samples, excluded from Git
-work/              Local dependencies and temporary files, excluded from Git
-outputs/           Local APK builds, excluded from Git
 ```
 
-See [architecture and data design](docs/ARCHITECTURE.en.md) for technical details and [development acknowledgments](ACKNOWLEDGMENTS.en.md) for assistance used during development.
+I describe the technical choices and the tools I used during development in these two guides. [Architecture and data design](docs/ARCHITECTURE.en.md) · [Development acknowledgments](ACKNOWLEDGMENTS.en.md)

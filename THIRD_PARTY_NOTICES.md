@@ -22,9 +22,9 @@
 
 ## 桌面解析、构建与测试工具
 
-- 桌面 PDFBox / FontBox **2.0.27**、commons-logging **1.2**：脚本按校验和下载，本地 JAR 不上传；从现有 JAR 原样提取的 LICENSE、NOTICE 位于 [docs/licenses/](docs/licenses/)。PDFBox 许可文件内还包括附带资源的第三方条款，不能只保留 Apache 标题。
+- 桌面 PDFBox / FontBox **2.0.27**、commons-logging **1.2**：脚本按校验和下载；从现有 JAR 原样提取的 LICENSE、NOTICE 位于 [docs/licenses/](docs/licenses/)。PDFBox 许可文件内还包括附带资源的第三方条款，不能只保留 Apache 标题。
 - Gradle wrapper **8.13**：仓库保留 `gradlew`、`gradlew.bat`、`gradle-wrapper.jar` 及 properties。保留 [Gradle 8.13 上游完整许可文件](docs/licenses/Gradle-8.13-LICENSE.txt)，其中包含 Gradle 发行版的第三方条款，不代表这些组件全部进入应用 APK。
-- AGP **8.13.2**、Kotlin/Compose 插件 **2.2.21**、KSP **2.2.21-2.0.5**：通过 Gradle 获取，不将本机缓存上传；项目自身许可证不替代其上游许可。
+- AGP **8.13.2**、Kotlin/Compose 插件 **2.2.21**、KSP **2.2.21-2.0.5**：通过 Gradle 获取，适用各自的上游许可。
 - JUnit **4.13.2**：测试依赖，保留 [EPL 1.0 原文](docs/licenses/JUnit-4.13.2-LICENSE.txt)。测试依赖不同于应用运行依赖。
 - `org.json:json:20240303`：JVM 测试依赖，该版本上游声明 [Public Domain](docs/licenses/JSON-java-20240303-LICENSE.txt)。
 - 示例再生成可选用 Python + fontTools；这些工具及系统字体不随源码分发，使用其他字体重新生成示例时需重新核对其许可。
@@ -32,7 +32,7 @@
 ## 自制示例与图像
 
 - `examples/offlinequiz-example.pdf` 和生成源码是项目自制 7 题示例，不包含私有真实题库。
-- 示例 PDF 内嵌 Noto Serif SC 字体子集。字体使用 SIL OFL 1.1；保留 [OFL 原文](docs/licenses/Noto-Serif-OFL-1.1.txt)及[实际本机源字体的版权/许可元数据](docs/licenses/Noto-Serif-SC-font-metadata.txt)。生成脚本仅在 `work/` 派生兼容性 cmap 副本，完整字体文件不上传。
+- 示例 PDF 内嵌 Noto Serif SC 字体子集。字体使用 SIL OFL 1.1；保留 [OFL 原文](docs/licenses/Noto-Serif-OFL-1.1.txt)及[实际本机源字体的版权/许可元数据](docs/licenses/Noto-Serif-SC-font-metadata.txt)。生成脚本仅在 `work/` 派生兼容性 cmap 副本。
 - 项目图标源文件位于 `docs/design/assets/tixia-icon-concept-v1.png`，用于制作启动图标。辅助工具的使用说明见 [开发与致谢](ACKNOWLEDGMENTS.md)。
 
 ## APK 随包许可材料

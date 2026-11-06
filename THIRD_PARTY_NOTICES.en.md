@@ -22,7 +22,7 @@ The standard Apache 2.0 text is in [Apache-2.0.txt](docs/licenses/Apache-2.0.txt
 
 ## Desktop parsing, build, and test tools
 
-- Desktop PDFBox / FontBox **2.0.27** and commons-logging **1.2** are downloaded with checksum verification; local JARs are excluded from Git. LICENSE and NOTICE texts extracted from these JARs are in [docs/licenses/](docs/licenses/). The PDFBox license file also contains terms for bundled resources.
+- Desktop PDFBox / FontBox **2.0.27** and commons-logging **1.2** are downloaded with checksum verification. LICENSE and NOTICE texts extracted from these JARs are in [docs/licenses/](docs/licenses/). The PDFBox license file also contains terms for bundled resources.
 - The Gradle **8.13** wrapper includes `gradlew`, `gradlew.bat`, `gradle-wrapper.jar`, and its properties. The [full upstream Gradle license](docs/licenses/Gradle-8.13-LICENSE.txt) contains third-party terms for the Gradle distribution; this does not mean every listed component is part of the app APK.
 - AGP **8.13.2**, Kotlin/Compose plugins **2.2.21**, and KSP **2.2.21-2.0.5** are fetched through Gradle. Local caches are not distributed, and the project license does not replace their upstream licenses.
 - JUnit **4.13.2** is a test dependency; its [EPL 1.0 text](docs/licenses/JUnit-4.13.2-LICENSE.txt) is retained. Test dependencies are distinct from application runtime dependencies.
@@ -32,7 +32,7 @@ The standard Apache 2.0 text is in [Apache-2.0.txt](docs/licenses/Apache-2.0.txt
 ## Original sample and images
 
 - `examples/offlinequiz-example.pdf` and its generator contain seven original questions, not private question-bank content.
-- The PDF embeds a Noto Serif SC subset under SIL OFL 1.1. Preserve the [OFL text](docs/licenses/Noto-Serif-OFL-1.1.txt) and [copyright/license metadata from the local source font](docs/licenses/Noto-Serif-SC-font-metadata.txt). The generator derives a compatibility-cmap copy only in `work/`; the full font is not committed.
+- The PDF embeds a Noto Serif SC subset under SIL OFL 1.1. Preserve the [OFL text](docs/licenses/Noto-Serif-OFL-1.1.txt) and [copyright/license metadata from the local source font](docs/licenses/Noto-Serif-SC-font-metadata.txt). The generator derives a compatibility-cmap copy only in `work/`.
 - The icon source is `docs/design/assets/tixia-icon-concept-v1.png`, used to prepare the launcher icon. See [development acknowledgments](ACKNOWLEDGMENTS.en.md) for assistance used during development.
 
 ## License materials bundled in the APK

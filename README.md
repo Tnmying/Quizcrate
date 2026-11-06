@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README.en.md)
 
-题匣是一款完全离线的安卓 PDF 题库应用，可以把学习资料变成随身题库：导入含参考答案的**文字型 PDF** 后，就能在手机上解析、校对、练习、复习错题，并保存学习记录。
+我开发题匣，是为了把学习资料变成随身题库。导入含参考答案的**文字型 PDF** 后，你可以在安卓手机上离线解析、校对、练习、复习错题和保存学习记录。
 
 无需登录、服务器、联网 AI 或运行时模型；应用不申请网络权限。支持 **Android 10（API 29）及以上**。
 
@@ -16,7 +16,7 @@ GitHub 已发布 **v0.2.0** 白蓝改版预览，提供正式签名 APK。
 
 在安卓手机上下载并打开 APK，按系统提示安装。需要 Android 10 及以上。
 
-v0.2.0 换上白蓝界面和冰蓝玻璃题匣图标，并加入首页续刷、全局学习记录、上一题回看和题目搜索。正式签名包已在 Android 16 上通过 v0.1.0 覆盖升级检查，自制题库和已结束的练习记录均保留。
+在 v0.2.0，我换上了白蓝界面和冰蓝玻璃题匣图标，并加入了首页续刷、全局学习记录、上一题回看和题目搜索。我在 Android 16 上从正式签名的 v0.1.0 覆盖安装了新版，确认自制题库和已结束的练习记录均保留。
 
 ## 功能
 
@@ -67,15 +67,13 @@ $env:ANDROID_USER_HOME = Join-Path $PWD 'work/android-user-home'
 & ./android/gradlew.bat --project-dir ./android --no-daemon :app:testDebugUnitTest :app:assembleDebug
 ```
 
-生成文件：`android/app/build/outputs/apk/debug/app-debug.apk`。本机已有 `android/local.properties` 时应确保 SDK 路径与当前环境一致；该文件不随源码上传。更详细的项目内依赖配置、设备测试命令见 [Android 开发说明](android/README.md)。
+生成文件：`android/app/build/outputs/apk/debug/app-debug.apk`。本机已有 `android/local.properties` 时应确保 SDK 路径与当前环境一致。更详细的项目内依赖配置、设备测试命令见 [Android 开发说明](android/README.md)。
 
-解析器的合成回归可独立运行；不需要提供私有样本。脚本首次运行会下载并校验 PDFBox 依赖，需要 JDK：
+解析器的回归测试使用合成题目，可以单独运行。脚本需要 JDK，首次运行会下载并校验 PDFBox 依赖。
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pdf-probe/run-tests.ps1 -Jdk $env:JAVA_HOME
 ```
-
-缺少 `local-inputs/sample.pdf` 时会跳过私有样本部分，合成测试仍执行。请勿为运行测试而上传自己的真实题库。
 
 ## 许可与第三方材料
 
@@ -92,9 +90,6 @@ android/           Kotlin + Jetpack Compose + Room 安卓工程、测试和 sche
 tools/            构建脚本、共享 PDF 解析器与回归测试
 examples/          自制 PDF、生成脚本和期望结果
 docs/              架构说明、图标素材与第三方许可
-local-inputs/      本地真实样本，不上传
-work/              本地依赖、临时文件、审查清单，不上传
-outputs/           本地历史 APK 等，不上传
 ```
 
-技术选型和数据设计见 [架构说明](docs/ARCHITECTURE.md)；开发过程中使用的辅助工具见 [开发与致谢](ACKNOWLEDGMENTS.md)。
+我把技术选型、数据设计和开发过程中使用的工具分别记在这两份文档里。[架构说明](docs/ARCHITECTURE.md) · [开发与致谢](ACKNOWLEDGMENTS.md)

@@ -8,7 +8,7 @@ This small, original sample covers all five question types and can be used to ch
 
 - `offlinequiz-example.pdf`: one-page A4 PDF with a text layer and all five question types.
 - `MakeExamplePdf.java`: PDFBox 2.0.27 generator; includes question text, answers, and underline positions.
-- `prepare-example-font.py`: removes compatibility-range cmap mappings from a local Noto Serif SC font so PDFBox does not emit Kangxi radicals such as `U+2F00` instead of `U+4E00`. The font itself is not committed.
+- `prepare-example-font.py`: removes compatibility-range cmap mappings from a local Noto Serif SC font so PDFBox does not emit Kangxi radicals such as `U+2F00` instead of `U+4E00`.
 - `generate-example-pdf.ps1`: generates the PDF using the JDK in `work/` and PDFBox in `tools/pdf-probe/lib`.
 
 ## Expected parsing result
@@ -65,4 +65,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pdf-probe/run.ps1 
   -OutDir work/04a/parse -RenderPages "1"
 ```
 
-Keep parsing and rendering outputs in `work/`; they are not committed.
+Parsing and rendering outputs go to `work/`.
