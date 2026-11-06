@@ -10,13 +10,13 @@ The project documentation is available in Chinese and English. **The app interfa
 
 ## Current status
 
-Version: **0.1.0**, internal version code **29** (2026-11-04). The first public preview is available as a release-signed APK.
+The release-signed APK currently available on GitHub is **v0.1.0**.
 
 **[Download the Android APK](https://github.com/Tnmying/Quizcrate/releases/download/v0.1.0/Quizcrate-0.1.0.apk)** · [Release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0)
 
 Download and open the APK on your Android phone, then follow the installation prompts. Requires Android 10 or later.
 
-Core features passed manual phone checks in the previous test build, with no issues found so far. The 0.1.0 release build and all 295 JVM tests have passed.
+The upcoming **v0.2.0** introduces a blue-and-white interface, a glass question-box icon, practice resumption from the home screen, an overview of learning history, previous-question review, and question search. An in-place upgrade from the signed v0.1.0 APK on Android 16 preserved the sample question bank and completed practice records. The instructions below apply to the current public release.
 
 ## Features
 

@@ -4,7 +4,7 @@
 
 Quizcrate uses Kotlin, Jetpack Compose, and Room. The application ID is `com.offlinequiz.app`; minimum Android version is 10 (API 29), with compileSdk/targetSdk 36.
 
-Current version: **0.1.0**, internal version code **29**, published as the first public preview. The [release-signed APK and release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0) are available. The release build and all 295 JVM tests have passed. Core features passed manual phone checks in the previous test build. See the [project README](../README.en.md) for features and usage. The app interface is currently in Chinese.
+The current public release is **v0.1.0** (version code 29). The project README covers features and usage. [Release-signed APK and release notes](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0) · [Project README](../README.en.md)
 
 ## Build environment
 
@@ -50,7 +50,7 @@ Old debug builds and the release APK use different signing certificates. Export 
 - `app/src/androidTest/`: device automation for Room, migrations, transactions, backups, and PDF storage.
 - `tools/pdf-probe/run-tests.ps1`: synthetic parser regression tests; private-sample checks are skipped when the sample is absent.
 
-The previous test build passed manual phone checks. The separate set of 28 device automation tests has not yet been run on a device.
+For the blue-and-white v0.2.0 update (version code 30), all 304 JVM tests and 28 instrumentation tests passed. Instrumentation ran on Android 16. Release Lint reported 0 errors, 15 warnings, and 2 hints. An in-place upgrade using the project sample preserved the questions, their review status, and completed practice records.
 
 With a test device connected:
 

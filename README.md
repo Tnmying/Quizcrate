@@ -10,13 +10,13 @@
 
 ## 当前状态
 
-当前版本：**0.1.0**（内部版本号 29，2026-11-04），首个公开测试版，提供正式签名的 release APK。
+GitHub 上可下载的版本为 **v0.1.0**，提供正式签名 APK。
 
 **[下载 Android APK](https://github.com/Tnmying/Quizcrate/releases/download/v0.1.0/Quizcrate-0.1.0.apk)** · [查看发布说明](https://github.com/Tnmying/Quizcrate/releases/tag/v0.1.0)
 
 在安卓手机上下载并打开 APK，按系统提示安装。需要 Android 10 及以上。
 
-核心功能已在此前测试版完成真机检查，暂未发现问题；0.1.0 的 release 构建及 295 项 JVM 测试已通过。
+下一版 **v0.2.0** 已完成白蓝界面改版，换上冰蓝玻璃题匣图标，并加入首页续刷、全局学习记录、上一题回看和题目搜索。正式签名包已在 Android 16 上通过 v0.1.0 覆盖升级检查，自制题库和已结束的练习记录均保留。下方使用步骤适用于当前公开版。
 
 ## 功能
 
