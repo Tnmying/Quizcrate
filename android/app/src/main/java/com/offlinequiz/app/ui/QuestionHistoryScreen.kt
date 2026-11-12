@@ -169,7 +169,7 @@ fun QuestionHistoryScreen(
                 if (records.isEmpty()) {
                     item {
                         Text(
-                            "还没有已落盘的作答记录。完成练习后，这里会显示每次的题目快照与结果。",
+                            "还没有已落盘的作答记录。完成练习后，这里会显示每次的作答结果。",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -221,7 +221,7 @@ private fun HistoryRecordCard(record: QuestionHistoryRecord, showVersionWarning:
                 "你的答案：" + snapshotView.userAnswer,
                 style = MaterialTheme.typography.bodyMedium
             )
-            if (showVersionWarning && !record.currentContentVersion) {
+            if (showVersionWarning && snapshotView.available && !record.currentContentVersion) {
                 Text(
                     "此记录来自旧内容版本，与当前题目内容不一致。",
                     style = MaterialTheme.typography.bodySmall,
@@ -229,7 +229,7 @@ private fun HistoryRecordCard(record: QuestionHistoryRecord, showVersionWarning:
                 )
             }
 
-            if (snapshotView.available) {
+            if (snapshotView.available && !record.currentContentVersion) {
                 Text(
                     "当时题目（历史快照）：${snapshotView.typeLabel}" +
                         (snapshotView.originalNumber?.let { " · 原编号 $it" } ?: ""),
@@ -266,7 +266,7 @@ private fun HistoryRecordCard(record: QuestionHistoryRecord, showVersionWarning:
                 TextButton(onClick = { expanded = !expanded }) {
                     Text(if (expanded) "收起当时题目" else "展开当时题目与参考答案")
                 }
-            } else {
+            } else if (!snapshotView.available) {
                 Text(
                     HistorySnapshotView.UNAVAILABLE_MESSAGE,
                     style = MaterialTheme.typography.bodySmall,

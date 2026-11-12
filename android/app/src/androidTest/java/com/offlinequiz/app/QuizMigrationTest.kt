@@ -22,6 +22,23 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class QuizMigrationTest {
 
+    @Test
+    fun migration3To4PreservesPdfAndAddsNullableTextSource() {
+        val name = "migration-3-4-${System.nanoTime()}.db"
+        helper.createDatabase(name, 3).apply {
+            insertLibrary(this, "lib-1", "旧题库")
+            insertQuestion(this, "q-1", "lib-1")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 4, true, QuizDatabase.MIGRATION_3_4).use { database ->
+            assertLibraryAndQuestion(database)
+            database.query("SELECT sourceText FROM libraries").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertTrue(cursor.isNull(0))
+            }
+        }
+    }
+
     @get:Rule
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),

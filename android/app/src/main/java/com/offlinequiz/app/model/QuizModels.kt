@@ -10,7 +10,8 @@ data class LibraryRecord(
     val sourceFileName: String,
     val sourcePageCount: Int,
     val pdfRelativePath: String?,
-    val schemaVersion: Int
+    val schemaVersion: Int,
+    val sourceText: String? = null
 )
 
 data class LibrarySummary(
@@ -109,7 +110,8 @@ data class StoredQuestion(
         options = options.map { it.copy(key = it.key.trim(), text = it.text.trim()) },
         answers = answers.map { it.trim() },
         acceptableAnswers = normalizedAcceptableAnswers(),
-        referenceAnswer = referenceAnswer?.trim().orEmpty()
+        referenceAnswer = referenceAnswer?.trim().orEmpty(),
+        type = type
     )
 }
 
@@ -118,7 +120,8 @@ data class EditableContent(
     val options: List<QuizOption>,
     val answers: List<String>,
     val acceptableAnswers: List<List<String>>,
-    val referenceAnswer: String
+    val referenceAnswer: String,
+    val type: String = QuestionTypes.UNKNOWN
 )
 
 sealed interface SaveOutcome {
@@ -176,7 +179,20 @@ object ReviewLabels {
         "empty_enumeration_item" to "顿号拆分出现空项，已保留原文",
         "empty_question_start" to "题目起始行为空",
         "empty_stem" to "题干为空",
-        "unknown_question_type" to "未知题型"
+        "unknown_question_type" to "题型不明确，请在题目编辑中确认",
+        "ambiguous_answer_table" to "答案表题号重复，无法唯一匹配",
+        "unmatched_answer_table" to "答案表未能匹配本题",
+        "conflicting_answers" to "题目答案与标注答案冲突",
+        "invalid_explicit_answer" to "标注答案格式或数量异常",
+        "text_blank_count_mismatch" to "空位与答案数量不一致，多空答案请用 || 分隔",
+        "numbered_answer_content" to "答案含编号内容，请核对是否夹有下一题",
+        "multiple_answer_labels" to "同一题中出现多处答案标注，请核对答案归属",
+        "type_tag_section_conflict" to "题目类型标记与章节题型不一致，请核对",
+        "unlabeled_answer_text" to "选项后有未标注的答案字母，已单独保留在原文，请核对选项边界",
+        "numbered_blank_answer_order" to "填空答案编号重复、缺号或顺序异常",
+        "answer_variants_need_review" to "原文用反斜线列出了可替换答案，现按任选一种判对",
+        "invalid_answer_variants" to "答案分隔符前后有空项，请核对",
+        "choice_type_uncertain" to "已识别选项，但缺少可靠答案，请核对单选或多选及参考答案"
     )
 
     /**

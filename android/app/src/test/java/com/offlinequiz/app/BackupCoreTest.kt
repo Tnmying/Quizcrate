@@ -37,6 +37,43 @@ import java.io.ByteArrayOutputStream
 /** End-to-end synthetic backup: export → strict read → validation → restore-as-new-copy plan. */
 class BackupCoreTest {
 
+    @Test
+    fun fillAnswerVariantsAndQuotedFormsSurviveBackup() = runTest {
+        val q = com.offlinequiz.app.model.FillAnswerVariants.let {
+            testQuestion(id = "variant-q", libraryId = "variant-lib", type = QuestionTypes.FILL_BLANK,
+                stem = "____", answers = listOf("五位一体"), acceptableAnswers = listOf(listOf("\"五位一体\"")))
+        }.copy(originalAnswers = listOf("五位一体\\\"五位一体\""))
+        val record = testLibrary("variant-lib").copy(pdfRelativePath = null)
+        val source = MemorySource(listOf(BackupLibraryHeader(record, 1, 0, 0, false)),
+            mapOf(record.id to listOf(q)), mapOf(record.id to emptyList()), mapOf(record.id to emptyList()), emptyMap())
+        val restored = BackupReader().read(ByteArrayInputStream(export(source))).libraries.single().questions.single()
+        assertEquals(q, restored)
+        for (answer in listOf("五位一体", "\"五位一体\"")) {
+            assertTrue(com.offlinequiz.app.model.PracticeJudge.judge(restored.toPracticeSnapshot(), PracticeUserAnswer(blankAnswers = listOf(answer)))!!)
+        }
+    }
+
+    @Test
+    fun textSourceAndLineReferencesSurviveExportAndRestorePlan() = runTest {
+        val text = "说明\n一、单选题\n1、水？\nA、水 B、气\n答案：A"
+        val parsed = TextImportParser.parse(text)
+        var questionId = 0
+        val questions = com.offlinequiz.app.data.QuestionMapper.fromParseResult(parsed.result, "text-lib") { "text-q-${questionId++}" }
+        val record = testLibrary("text-lib").copy(sourcePageCount = 0, pdfRelativePath = null, schemaVersion = 4, sourceText = text)
+        val source = MemorySource(listOf(BackupLibraryHeader(record, 1, 0, 0, false)),
+            mapOf("text-lib" to questions), mapOf("text-lib" to emptyList()), mapOf("text-lib" to emptyList()), emptyMap())
+        val bundle = BackupReader().read(ByteArrayInputStream(export(source)))
+        assertEquals(text, bundle.libraries.single().record.sourceText)
+        assertEquals(questions, bundle.libraries.single().questions)
+        var id = 0
+        val plan = RestorePlanner.plan(bundle, BackupIdFactory { "restored-text-${id++}" }, 4)
+        assertEquals(text, plan.libraries.single().library.sourceText)
+        assertEquals(1, plan.summary.textSourceLibraries)
+        assertEquals(0, plan.summary.pdfMissingLibraries)
+        assertNull(plan.libraries.single().library.pdfRelativePath)
+        assertEquals(listOf(3, 4, 5), plan.libraries.single().questions.single().sourceLines.map { it.line })
+    }
+
     private class MemorySource(
         val headers: List<BackupLibraryHeader>,
         private val questions: Map<String, List<StoredQuestion>>,

@@ -74,7 +74,7 @@ internal fun QuestionRow(
             }
             Spacer(Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WarmButton(onClick = onOpenHistory, modifier = Modifier.fillMaxWidth()) { Text("练习记录") }
+                WarmButton(onClick = onOpenHistory, modifier = Modifier.fillMaxWidth()) { ActionLabel(AppIcons.History, "练习记录") }
             }
         }
     }

@@ -5,9 +5,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -18,46 +20,111 @@ public final class QuestionParser {
     private static final Pattern HEADING =
             Pattern.compile("^([一二三四五六七八九十]+)、(.+?)\\s*$");
     private static final Pattern QUESTION_START =
-            Pattern.compile("^(\\d{1,3})\\s*[.．]\\s*(.*)$");
+            Pattern.compile("^[\\t \u3000]*(?:[（(][\\s\u3000]*|第[\\s\u3000]*)?([0-9０-９]{1,4})[\\s\u3000]*(?:[.．]|、|[）)]|题)[\\s\u3000]*(.*)$");
     private static final Pattern NUMBER_PREFIX =
-            Pattern.compile("^\\s*\\d{1,3}\\s*[.．]\\s*");
+            Pattern.compile("^[\\s\u3000]*(?:[（(][\\s\u3000]*|第[\\s\u3000]*)?[0-9０-９]{1,4}[\\s\u3000]*(?:[.．]|、|[）)]|题)[\\s\u3000]*");
     private static final Pattern OPTION_MARKER =
-            Pattern.compile("(?m)(^|\\s)([A-Z])[.．]\\s*");
+            Pattern.compile("(?m)(^|[\\s\u3000])([A-Za-zＡ-Ｚａ-ｚ])[.．、)）][\\s\u3000]*");
     private static final Pattern UNSUPPORTED_OPTION_MARKER =
             Pattern.compile("(?m)(^|\\s)([A-Z]{2,})[.．]");
     private static final Pattern ANSWER =
-            Pattern.compile("[（(]\\s*([A-Za-z]{1,26}|[√×✓✗✔✘])\\s*[）)]");
+            Pattern.compile("[（(][\\s\u3000]*([A-Za-zＡ-Ｚａ-ｚ](?:[A-Za-zＡ-Ｚａ-ｚ\\t \u3000、,，]*[A-Za-zＡ-Ｚａ-ｚ])?|[√×✓✗✔✘])[\\s\u3000]*[）)]");
     private static final String OPTION_KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final Pattern ANSWER_LABEL = Pattern.compile("(?m)^[\\t ]*(?:正确答案|参考答案|答案)[\\t ]*[：:]+[\\t ]*(.*)$");
+    private static final Pattern ANALYSIS_LABEL = Pattern.compile("(?m)^\\s*(?:答案解析|解析|解答说明)\\s*[：:]");
+    private static final Pattern PERSONAL_LABEL = Pattern.compile("(?m)^[\\t ]*(?:我的答案|你的答案|学生答案|已选答案)[\\t ]*[：:]");
+    private static final Pattern CONTROL_LABEL = Pattern.compile("(?m)^[\\t ]*(?:查看解析|收起解析|查看答案|收起答案)[\\t ]*$");
+    private static final Pattern TYPE_TAG = Pattern.compile("^[\\t ]*[\\[【［](单项选择题|多项选择题|单选题|多选题|判断题|填空题|简答题|问答题|单选|多选|判断|填空|简答)[\\]】］][\\t ]*");
+    private static final Pattern BLANK_PLACEHOLDER = Pattern.compile("_{2,}|[（(][\\t ]*[）)]");
+    private static final Pattern NUMBERED_BLANK_ANSWER = Pattern.compile("(?:^|[\\r\\n\\t ])[(（](\\d+)[)）][\\t ]*");
+    private static final Pattern TABLE_HEADING = Pattern.compile("^(?:[一二三四五六七八九十]+[、.．][\\t ]*)?(?:(?:单项选择题|多项选择题|单选题|多选题|判断题)[\\t ]*)?(?:参考答案|答案汇总|参考答案汇总|答案表)[：:]?$");
+    private static final Pattern CHAPTER_HEADING = Pattern.compile("^(第[一二三四五六七八九十百零〇0-9０-９]+[章节篇部])(?:[\\t \u3000]*.*)$");
 
     private QuestionParser() {}
 
     public static Model.ParseResult parse(Model.Geometry geometry) {
+        return parse(geometry, "unknown");
+    }
+
+    /** defaultType is an explicit import choice, used only outside typed sections. */
+    public static Model.ParseResult parse(Model.Geometry geometry, String defaultType) {
         Model.ParseResult result = new Model.ParseResult();
+        Set<Integer> marginNoise = repeatedMarginLines(geometry);
         List<Model.Line> content = new ArrayList<>();
         for (Model.Line line : geometry.lines) {
-            if (!line.footer && !line.text.trim().isEmpty()) content.add(line);
+            if (!line.footer && !marginNoise.contains(line.globalIndex) && !line.text.trim().isEmpty()) content.add(line);
         }
 
-        Model.Section currentSection = null;
+        Model.Section currentSection = new Model.Section();
+        currentSection.title = "未分节";
+        currentSection.type = defaultType;
+        result.sections.add(currentSection);
         RawQuestion current = null;
+        TableBlock answerTable = null;
+        List<TableBlock> answerTables = new ArrayList<>();
+        Map<Model.Question, Model.Section> questionScopes = new IdentityHashMap<>();
+        Map<Model.Section, String> chapters = new IdentityHashMap<>();
+        String chapter = "";
+        chapters.put(currentSection, chapter);
         Map<String, Integer> counters = new HashMap<>();
 
         for (int i = 0; i < content.size(); i++) {
             Model.Line line = content.get(i);
             String text = line.text.trim();
 
-            Matcher heading = HEADING.matcher(text);
-            if (heading.matches()) {
+            boolean tableHeading = TABLE_HEADING.matcher(text).matches();
+            boolean sectionHeading = isSectionHeading(text, current != null);
+            if (sectionHeading && !chapterKey(text).isEmpty() && current != null && (current.inAnswer || current.inAnalysis)
+                    && !hasQuestionEvidenceAfter(content, i)) sectionHeading = false;
+            if (answerTable != null && !tableHeading) {
+                if ((sectionHeading && hasQuestionEvidenceAfter(content, i)) || isNewQuestionAfterTable(content, i)) {
+                    answerTable.closedByQuestions = true;
+                    answerTable = null;
+                } else if (sectionHeading) {
+                    answerTable.hasSelectors = true;
+                    String key = chapterKey(text);
+                    if (!key.isEmpty()) { answerTable.chapter = key; answerTable.type = null; }
+                    else {
+                        String type = sectionType(text);
+                        if (!"unknown".equals(type)) answerTable.type = type;
+                        else addTableAnomaly(result, line, text);
+                    }
+                    continue;
+                } else {
+                    List<AnswerTableParser.Entry> entries = AnswerTableParser.parse(text);
+                    if (entries == null) addTableAnomaly(result, line, text);
+                    else for (AnswerTableParser.Entry entry : entries) answerTable.entries.add(new TableEntry(entry, line, answerTable.type, answerTable.chapter));
+                    continue;
+                }
+            }
+            if (tableHeading
+                    && (current == null || (!"short_answer".equals(current.type) && !"fill_blank".equals(current.type))
+                        || !text.matches("^参考答案[：:]?$"))) {
+                if (current != null) finish(current, result, counters, questionScopes);
+                current = null;
+                String inheritedChapter = answerTable == null ? "" : answerTable.chapter;
+                answerTable = new TableBlock(currentSection, result.questions.size());
+                answerTable.chapter = inheritedChapter;
+                String type = sectionType(text);
+                if (!"unknown".equals(type)) answerTable.type = type;
+                answerTables.add(answerTable);
+                continue;
+            }
+
+            if (sectionHeading) {
                 if (current != null) {
-                    finish(current, result, counters);
+                    finish(current, result, counters, questionScopes);
                     current = null;
                 }
                 Model.Section section = new Model.Section();
                 section.title = text;
-                section.type = sectionType(heading.group(2));
+                section.type = sectionType(text);
+                String chapterKey = chapterKey(text);
+                if (!chapterKey.isEmpty()) chapter = chapterKey;
                 section.page = line.page;
                 result.sections.add(section);
                 currentSection = section;
+                chapters.put(section, chapter);
                 continue;
             }
 
@@ -65,11 +132,35 @@ public final class QuestionParser {
 
             Matcher start = QUESTION_START.matcher(text);
             if (start.matches()) {
+                String taggedType = taggedType(start.group(2));
+                if (current != null && "fill_blank".equals(current.type) && current.inMetadata
+                        && taggedType == null && text.matches("^[（(][0-9０-９]+[）)].*")) {
+                    current.lines.add(line);
+                    continue;
+                }
+                if (taggedType == null && current != null && text.matches("^[0-9０-９]+[.．][0-9０-９]+.*")
+                        && ("single_choice".equals(current.type) || "multiple_choice".equals(current.type))
+                        && !hasChoiceEvidenceAhead(content, i)) {
+                    current.lines.add(line);
+                    continue;
+                }
+                if (taggedType == null && current != null && "short_answer".equals(current.type) && current.inAnswer
+                        && !hasReferenceAnswerAhead(content, i)) {
+                    current.lines.add(line);
+                    current.numberedAnswerContent |= line.page == 0;
+                    continue;
+                }
+                if (taggedType == null && current != null && current.inAnalysis
+                        && ("single_choice".equals(current.type) || "multiple_choice".equals(current.type))
+                        && !hasChoiceEvidenceAhead(content, i)) {
+                    current.lines.add(line);
+                    continue;
+                }
                 if (current != null) {
-                    finish(current, result, counters);
+                    finish(current, result, counters, questionScopes);
                     current = null;
                 }
-                String numberText = start.group(1);
+                String numberText = AnswerTableParser.ascii(start.group(1));
                 String body = start.group(2).trim();
                 if (body.isEmpty() && hasSameNumberAhead(content, i, numberText)) {
                     Model.Anomaly a = new Model.Anomaly();
@@ -86,7 +177,10 @@ public final class QuestionParser {
                 current = new RawQuestion();
                 current.geometry = geometry;
                 current.section = currentSection;
-                current.type = currentSection.type;
+                current.type = taggedType == null ? currentSection.type : taggedType;
+                current.autoType = "unknown".equals(current.type);
+                current.typeConflict = taggedType != null && !"unknown".equals(currentSection.type)
+                    && !"未分节".equals(currentSection.title) && !taggedType.equals(currentSection.type);
                 current.originalNumber = numberText;
                 current.numberValue = safeInt(numberText);
                 current.emptyStart = body.isEmpty();
@@ -94,29 +188,53 @@ public final class QuestionParser {
                 continue;
             }
 
-            if (current != null) current.lines.add(line);
+            if (current != null) {
+                current.lines.add(line);
+                if (ANALYSIS_LABEL.matcher(text).find()) current.inAnalysis = true;
+                if (ANSWER_LABEL.matcher(text).find() || text.matches("参考答案[：:]?")) current.inAnswer = true;
+                if (PERSONAL_LABEL.matcher(text).find() || ANSWER_LABEL.matcher(text).find()) current.inMetadata = true;
+                if (current.autoType) current.type = inferType(current);
+            }
+            else {
+                Model.Anomaly anomaly = new Model.Anomaly();
+                anomaly.type = "unparsed_text";
+                anomaly.page = line.page;
+                anomaly.line = line.lineNo;
+                anomaly.detail = text;
+                result.anomalies.add(anomaly);
+            }
         }
-        if (current != null) finish(current, result, counters);
+        if (current != null) finish(current, result, counters, questionScopes);
+        bindAnswerTables(result, answerTables, questionScopes, chapters);
 
-        addNumberingAnomalies(result);
+        addNumberingAnomalies(result, questionScopes);
         addUnderlineAnomalies(result, geometry);
+        result.sections.removeIf(section -> section.count == 0 && "未分节".equals(section.title));
+        counters.clear();
+        for (Model.Question q : result.questions) {
+            int count = counters.getOrDefault(q.type, 0) + 1;
+            counters.put(q.type, count);
+            q.id = String.format(Locale.ROOT, "%s-%03d", q.type, count);
+        }
         return result;
     }
 
     private static void finish(RawQuestion raw, Model.ParseResult result,
-                               Map<String, Integer> counters) {
+                               Map<String, Integer> counters, Map<Model.Question, Model.Section> scopes) {
         if (raw.lines.isEmpty()) return;
         Model.Question q = parseRaw(raw);
         if (q == null) return;
         int count = counters.getOrDefault(q.type, 0) + 1;
         counters.put(q.type, count);
-        q.id = String.format("%s-%03d", q.type, count);
+        q.id = String.format(Locale.ROOT, "%s-%03d", q.type, count);
         result.questions.add(q);
+        scopes.put(q, raw.section);
         raw.section.count++;
     }
 
     private static Model.Question parseRaw(RawQuestion raw) {
         Model.Question q = new Model.Question();
+        if (raw.autoType) raw.type = inferType(raw);
         q.type = raw.type;
         q.sectionTitle = raw.section.title;
         q.originalNumber = raw.originalNumber;
@@ -138,7 +256,11 @@ public final class QuestionParser {
                 parseJudge(raw, q);
                 break;
             case "fill_blank":
-                parseFill(raw, q);
+                if (ANSWER_LABEL.matcher(bodyWithBreaks(raw)).find()
+                        || (!raw.lines.isEmpty() && raw.lines.get(0).page == 0)
+                        || (raw.autoType && BLANK_PLACEHOLDER.matcher(questionContent(bodyWithBreaks(raw))).find())) parseLabeledFill(raw, q);
+                else if (!raw.lines.isEmpty() && raw.lines.get(0).page == 0) parseTextFill(raw, q);
+                else parseFill(raw, q);
                 break;
             case "short_answer":
                 parseShort(raw, q);
@@ -151,6 +273,14 @@ public final class QuestionParser {
 
         if (q.stem == null || q.stem.trim().isEmpty()) addReview(q, "empty_stem");
         if (raw.emptyStart) addReview(q, "empty_question_start");
+        if (raw.typeConflict) addReview(q, "type_tag_section_conflict");
+        if (raw.choiceTypeUncertain) addReview(q, "choice_type_uncertain");
+        if (raw.numberedAnswerContent) addReview(q, "numbered_answer_content");
+        Matcher answerLabels = ANSWER_LABEL.matcher(bodyWithBreaks(raw));
+        int labelCount = 0;
+        while (answerLabels.find()) labelCount++;
+        if (labelCount > 1) addReview(q, "multiple_answer_labels");
+        if (q.originalSentence == null) q.originalSentence = bodyWithBreaks(raw);
         q.needsReview = !q.reviewReasons.isEmpty();
         return q;
     }
@@ -158,6 +288,19 @@ public final class QuestionParser {
     private static void parseChoice(RawQuestion raw, Model.Question q) {
         String body = bodyWithBreaks(raw);
         q.optionRawText = body;
+        Matcher explicit = ANSWER_LABEL.matcher(body);
+        String explicitAnswer = null;
+        if (explicit.find()) {
+            explicitAnswer = referenceText(body, explicit);
+        }
+        body = questionContent(body);
+        if (explicitAnswer != null) {
+            Matcher trailingToken = Pattern.compile("\\n[\\t ]*([A-Z]{1,26})[\\t ]*\\z").matcher(body);
+            if (trailingToken.find() && optionMarkers(body.substring(0, trailingToken.start())).size() >= 2) {
+                addReview(q, "unlabeled_answer_text");
+                body = body.substring(0, trailingToken.start()).trim();
+            }
+        }
         List<Marker> markers = optionMarkers(body);
         if (markers.isEmpty()) {
             q.stemWithAnswer = compact(body);
@@ -209,10 +352,11 @@ public final class QuestionParser {
         if (token == null) {
             q.stem = q.stemWithAnswer;
             addReview(q, "no_answer_in_parentheses");
+            if (explicitAnswer != null) applyExternalAnswer(q, explicitAnswer);
             return;
         }
 
-        String letters = token.replaceAll("\\s", "").toUpperCase();
+        String letters = AnswerTableParser.ascii(token).replaceAll("[\\s\u3000]", "").toUpperCase(Locale.ROOT);
         Set<String> unique = new LinkedHashSet<>();
         for (int i = 0; i < letters.length(); i++) {
             char c = letters.charAt(i);
@@ -237,6 +381,7 @@ public final class QuestionParser {
             }
             if (!found) addReview(q, "answer_not_in_options");
         }
+        if (explicitAnswer != null) applyExternalAnswer(q, explicitAnswer);
     }
 
     private static boolean hasOutOfOrderMarker(List<Model.Option> options) {
@@ -259,7 +404,24 @@ public final class QuestionParser {
     }
 
     private static void parseJudge(RawQuestion raw, Model.Question q) {
-        q.stemWithAnswer = compact(bodyWithBreaks(raw));
+        String body = bodyWithBreaks(raw);
+        q.stemWithAnswer = compact(questionContent(body));
+        Matcher explicit = ANSWER_LABEL.matcher(body);
+        if (explicit.find()) {
+            q.stem = q.stemWithAnswer;
+            q.stemWithAnswer = q.stem;
+            Matcher bracket = ANSWER.matcher(q.stem);
+            while (bracket.find()) {
+                if (bracket.group(1).matches("[√×✓✗✔✘]")) {
+                    q.answers.clear();
+                    q.answers.add(bracket.group(1).matches("[√✓✔]") ? "√" : "×");
+                    q.stem = q.stem.substring(0, bracket.start()) + "（ ）" + q.stem.substring(bracket.end());
+                    break;
+                }
+            }
+            applyExternalAnswer(q, referenceText(body, explicit));
+            return;
+        }
         Matcher answer = ANSWER.matcher(q.stemWithAnswer);
         int start = -1;
         int end = -1;
@@ -282,16 +444,23 @@ public final class QuestionParser {
 
     private static void parseShort(RawQuestion raw, Model.Question q) {
         String body = bodyWithBreaks(raw);
+        Matcher label = ANSWER_LABEL.matcher(body);
         int index = body.indexOf("参考答案");
+        int answerStart = index < 0 ? -1 : index + "参考答案".length();
+        if (label.find()) {
+            index = label.start();
+            answerStart = label.start(1);
+        }
         if (index < 0) {
             q.stem = compact(body);
             q.stemWithAnswer = q.stem;
             addReview(q, "no_reference_answer_marker");
             return;
         }
-        q.stem = compact(body.substring(0, index));
-        String answer = body.substring(index + "参考答案".length())
+        q.stem = compact(questionContent(body.substring(0, index)));
+        String answer = body.substring(answerStart)
                 .replaceFirst("^\\s*[：:]\\s*", "");
+        answer = stripTrailingMetadata(answer);
         q.referenceAnswer = compact(answer);
         q.stemWithAnswer = body.substring(0, index) + "参考答案：" + answer;
         if (q.referenceAnswer.isEmpty()) {
@@ -514,12 +683,14 @@ public final class QuestionParser {
         return sb.toString();
     }
 
-    private static void addNumberingAnomalies(Model.ParseResult result) {
-        Map<String, List<Model.Question>> byType = new LinkedHashMap<>();
+    private static void addNumberingAnomalies(Model.ParseResult result, Map<Model.Question, Model.Section> scopes) {
+        Map<Model.Section, List<Model.Question>> byScope = new LinkedHashMap<>();
         for (Model.Question q : result.questions) {
-            byType.computeIfAbsent(q.type, k -> new ArrayList<>()).add(q);
+            byScope.computeIfAbsent(scopes.get(q), k -> new ArrayList<>()).add(q);
         }
-        for (Map.Entry<String, List<Model.Question>> e : byType.entrySet()) {
+        for (Map.Entry<Model.Section, List<Model.Question>> e : byScope.entrySet()) {
+            String scopeType = e.getValue().get(0).type;
+            for (Model.Question q : e.getValue()) if (!scopeType.equals(q.type)) { scopeType = "mixed"; break; }
             List<Integer> numbers = new ArrayList<>();
             for (Model.Question q : e.getValue()) {
                 if (q.numberValue != null) numbers.add(q.numberValue);
@@ -533,7 +704,7 @@ public final class QuestionParser {
                 if (!unique.contains(n)) {
                     Model.Anomaly a = new Model.Anomaly();
                     a.type = "missing_number";
-                    a.section = e.getKey();
+                    a.section = scopeType;
                     a.number = n;
                     a.detail = "number absent from source; no question synthesized";
                     result.anomalies.add(a);
@@ -545,7 +716,7 @@ public final class QuestionParser {
                 if (c.getValue() > 1) {
                     Model.Anomaly a = new Model.Anomaly();
                     a.type = "duplicate_number";
-                    a.section = e.getKey();
+                    a.section = scopeType;
                     a.number = c.getKey();
                     a.detail = "number appears " + c.getValue() + " times";
                     result.anomalies.add(a);
@@ -575,7 +746,7 @@ public final class QuestionParser {
         Matcher matcher = OPTION_MARKER.matcher(body);
         int firstA = -1;
         while (matcher.find()) {
-            if ("A".equals(matcher.group(2))) {
+            if ("A".equals(AnswerTableParser.ascii(matcher.group(2)).toUpperCase(Locale.ROOT))) {
                 firstA = matcher.start(2);
                 break;
             }
@@ -586,7 +757,7 @@ public final class QuestionParser {
         matcher.region(firstA, body.length());
         while (matcher.find()) {
             Marker marker = new Marker();
-            marker.key = matcher.group(2);
+            marker.key = AnswerTableParser.ascii(matcher.group(2)).toUpperCase(Locale.ROOT);
             marker.start = matcher.start(2);
             marker.end = matcher.end();
             markers.add(marker);
@@ -598,7 +769,8 @@ public final class QuestionParser {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < raw.lines.size(); i++) {
             String text = raw.lines.get(i).text.trim();
-            if (i == 0) text = text.replaceFirst("^\\s*\\d{1,3}\\s*[.．]\\s*", "");
+            if (i == 0) text = NUMBER_PREFIX.matcher(text).replaceFirst("");
+            if (i == 0) text = TYPE_TAG.matcher(text).replaceFirst("");
             text = text.trim();
             if (text.isEmpty()) continue;
             if (sb.length() > 0) sb.append('\n');
@@ -621,25 +793,44 @@ public final class QuestionParser {
             if (HEADING.matcher(text).matches()) return false;
             Matcher m = QUESTION_START.matcher(text);
             if (m.matches()) {
-                if (m.group(1).equals(number) && !m.group(2).trim().isEmpty()) return true;
+                if (AnswerTableParser.ascii(m.group(1)).equals(number) && !m.group(2).trim().isEmpty()) return true;
                 return false;
             }
         }
         return false;
     }
 
+    private static boolean hasChoiceEvidenceAhead(List<Model.Line> content, int index) {
+        for (int i = index; i < Math.min(content.size(), index + 30); i++) {
+            String text = content.get(i).text.trim();
+            if (i > index && (QUESTION_START.matcher(text).matches() || HEADING.matcher(text).matches())) return false;
+            if (OPTION_MARKER.matcher(text).find()) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasReferenceAnswerAhead(List<Model.Line> content, int index) {
+        if (content.get(index).text.contains("参考答案")) return true;
+        for (int i = index + 1; i < Math.min(content.size(), index + 50); i++) {
+            String text = content.get(i).text.trim();
+            if (QUESTION_START.matcher(text).matches() || HEADING.matcher(text).matches()) return false;
+            if (ANSWER_LABEL.matcher(text).find() || text.matches("参考答案[：:]?")) return true;
+        }
+        return false;
+    }
+
     private static String sectionType(String title) {
-        if (title.contains("单选")) return "single_choice";
-        if (title.contains("多选")) return "multiple_choice";
+        if (title.contains("单选") || title.contains("单项选择")) return "single_choice";
+        if (title.contains("多选") || title.contains("多项选择")) return "multiple_choice";
         if (title.contains("判断")) return "true_false";
         if (title.contains("填空")) return "fill_blank";
-        if (title.contains("简答")) return "short_answer";
+        if (title.contains("简答") || title.contains("问答")) return "short_answer";
         return "unknown";
     }
 
     private static Integer safeInt(String s) {
         try {
-            return Integer.valueOf(s);
+            return Integer.valueOf(AnswerTableParser.ascii(s));
         } catch (NumberFormatException e) {
             return null;
         }
@@ -649,6 +840,330 @@ public final class QuestionParser {
         if (!q.reviewReasons.contains(reason)) q.reviewReasons.add(reason);
     }
 
+    private static void applyExternalAnswer(Model.Question q, String text) {
+        List<String> candidate = new ArrayList<>();
+        if ("single_choice".equals(q.type) || "multiple_choice".equals(q.type)) {
+            String token = AnswerTableParser.ascii(text).replaceAll("[\\s\u3000、,，;；]", "").toUpperCase(Locale.ROOT);
+            if (!token.matches("[A-Z]{1,26}")) { addReview(q, "invalid_explicit_answer"); return; }
+            for (char key : token.toCharArray()) {
+                String value = String.valueOf(key);
+                if (candidate.contains(value)) { addReview(q, "invalid_explicit_answer"); return; }
+                boolean exists = false;
+                for (Model.Option option : q.options) if (value.equals(option.key)) exists = true;
+                if (!exists) { addReview(q, "answer_not_in_options"); return; }
+                candidate.add(value);
+            }
+            if (("single_choice".equals(q.type) && candidate.size() != 1)
+                    || ("multiple_choice".equals(q.type) && candidate.size() < 2)) {
+                addReview(q, "invalid_explicit_answer"); return;
+            }
+        } else if ("true_false".equals(q.type)) {
+            if (text.matches("√|✓|✔|正确|对")) candidate.add("√");
+            else if (text.matches("×|✗|✘|错误|错")) candidate.add("×");
+            else { addReview(q, "invalid_explicit_answer"); return; }
+        } else { addReview(q, "unmatched_answer_table"); return; }
+        Set<String> existing = new HashSet<>(q.answers);
+        if ("true_false".equals(q.type) && !q.answers.isEmpty()) {
+            existing.clear();
+            for (String value : q.answers) existing.add(value.matches("[√✓✔]") ? "√" : value.matches("[×✗✘]") ? "×" : value);
+        }
+        if (!q.answers.isEmpty() && !existing.equals(new HashSet<>(candidate))) {
+            addReview(q, "conflicting_answers"); return;
+        }
+        q.answers.clear();
+        q.answers.addAll(candidate);
+        q.reviewReasons.remove("no_answer_in_parentheses");
+        q.reviewReasons.remove("no_true_false_symbol");
+    }
+
+    private static void parseTextFill(RawQuestion raw, Model.Question q) {
+        String body = bodyWithBreaks(raw);
+        q.originalSentence = body;
+        Matcher label = ANSWER_LABEL.matcher(body);
+        if (!label.find()) {
+            q.stem = body;
+            addReview(q, "no_reference_answer_marker");
+            return;
+        }
+        q.stem = body.substring(0, label.start()).trim().replaceAll("_{2,}", "____");
+        String answer = body.substring(label.start(1)).trim();
+        Matcher analysis = ANALYSIS_LABEL.matcher(answer);
+        if (analysis.find()) answer = answer.substring(0, analysis.start()).trim();
+        for (String part : answer.split("\\|\\|", -1)) q.answers.add(part.trim());
+        Matcher blanks = Pattern.compile("____").matcher(q.stem);
+        int count = 0;
+        while (blanks.find()) count++;
+        if (count == 0 || count != q.answers.size()) addReview(q, "text_blank_count_mismatch");
+        if (q.answers.contains("")) addReview(q, "empty_reference_answer");
+        q.learningBlankCount = count;
+        q.stemWithAnswer = q.stem;
+    }
+
+    private static String taggedType(String text) {
+        Matcher tag = TYPE_TAG.matcher(text);
+        return tag.find() ? sectionType(tag.group(1)) : null;
+    }
+
+    private static String chapterKey(String text) {
+        Matcher matcher = CHAPTER_HEADING.matcher(text);
+        return matcher.matches() && text.length() <= 100 ? AnswerTableParser.ascii(matcher.group(1)) : "";
+    }
+
+    private static boolean isSectionHeading(String text, boolean withinQuestion) {
+        if (!chapterKey(text).isEmpty()) return true;
+        if (text.matches("^(?:单选题|单项选择题|多选题|多项选择题|判断题|填空题|简答题|问答题)$")) return true;
+        return HEADING.matcher(text).matches() && (!"unknown".equals(sectionType(text)) || !withinQuestion);
+    }
+
+    private static boolean hasQuestionEvidenceAfter(List<Model.Line> lines, int index) {
+        for (int i = index + 1; i < Math.min(lines.size(), index + 80); i++) {
+            String text = lines.get(i).text.trim();
+            if (TABLE_HEADING.matcher(text).matches() || !chapterKey(text).isEmpty()) return false;
+            if (isSectionHeading(text, false)) continue;
+            if (isNewQuestionAfterTable(lines, i)) return true;
+            if (AnswerTableParser.parse(text) != null) return false;
+        }
+        return false;
+    }
+
+    private static boolean isNewQuestionAfterTable(List<Model.Line> lines, int index) {
+        String text = lines.get(index).text.trim();
+        Matcher start = QUESTION_START.matcher(text);
+        if (!start.matches()) return false;
+        if (taggedType(start.group(2)) != null) return true;
+        return AnswerTableParser.parse(text) == null && (hasChoiceEvidenceAhead(lines, index) || hasReferenceAnswerAhead(lines, index));
+    }
+
+    private static void addTableAnomaly(Model.ParseResult result, Model.Line line, String text) {
+        Model.Anomaly anomaly = new Model.Anomaly();
+        anomaly.type = "unparsed_answer_table";
+        anomaly.page = line.page;
+        anomaly.line = line.lineNo;
+        anomaly.detail = text;
+        result.anomalies.add(anomaly);
+    }
+
+    private static boolean tableApplies(TableBlock table, String type, String chapter, Model.Question q,
+                                        boolean localConvention, Map<Model.Question, Model.Section> scopes,
+                                        Map<Model.Section, String> chapters, int position) {
+        Model.Section scope = scopes.get(q);
+        if (!chapter.isEmpty() && !chapter.equals(chapters.getOrDefault(scope, ""))) return false;
+        if (type != null && !type.equals(q.type)) return false;
+        if (!chapter.isEmpty()) return true;
+        return !(table.closedByQuestions || (localConvention && table.conventionScope))
+            || (scope == table.previousSection && position < table.endQuestionIndex);
+    }
+
+    private static void bindAnswerTables(Model.ParseResult result, List<TableBlock> tables,
+                                         Map<Model.Question, Model.Section> scopes, Map<Model.Section, String> chapters) {
+        if (tables.isEmpty()) return;
+        Map<Model.Question, Integer> positions = new IdentityHashMap<>();
+        Map<String, List<Model.Question>> byNumber = new HashMap<>();
+        for (int i = 0; i < result.questions.size(); i++) {
+            Model.Question q = result.questions.get(i);
+            positions.put(q, i);
+            String key = q.numberValue == null ? q.originalNumber : q.numberValue.toString();
+            byNumber.computeIfAbsent(key, k -> new ArrayList<>()).add(q);
+        }
+        boolean localConvention = tables.stream().anyMatch(table -> table.closedByQuestions && !table.entries.isEmpty());
+        Map<Model.Section, Integer> tableCounts = new IdentityHashMap<>();
+        for (TableBlock table : tables) tableCounts.put(table.previousSection, tableCounts.getOrDefault(table.previousSection, 0) + 1);
+        for (TableBlock table : tables) table.conventionScope = !table.hasSelectors && tableCounts.get(table.previousSection) == 1;
+        Map<Model.Question, List<TableEntry>> assignments = new IdentityHashMap<>();
+        Set<Model.Question> covered = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (TableBlock table : tables) {
+            for (Model.Question q : result.questions) if (tableApplies(table, table.type, table.chapter, q, localConvention, scopes, chapters, positions.get(q))) covered.add(q);
+            for (TableEntry entry : table.entries) {
+                List<Model.Question> matches = new ArrayList<>();
+                Integer number = safeInt(entry.number);
+                String key = number == null ? entry.number : number.toString();
+                for (Model.Question q : byNumber.getOrDefault(key, Collections.emptyList())) {
+                    if (tableApplies(table, entry.type, entry.chapter, q, localConvention, scopes, chapters, positions.get(q))) {
+                        covered.add(q);
+                        if ((q.numberValue != null && q.numberValue.equals(safeInt(entry.number))) || entry.number.equals(q.originalNumber)) matches.add(q);
+                    }
+                }
+                if (matches.size() == 1) assignments.computeIfAbsent(matches.get(0), k -> new ArrayList<>()).add(entry);
+                else {
+                    for (Model.Question q : matches) addReview(q, "ambiguous_answer_table");
+                    if (matches.isEmpty()) addTableAnomaly(result, entry.line, "答案题号 " + entry.number + " 没有唯一对应题目");
+                }
+            }
+        }
+        for (Map.Entry<Model.Question, List<TableEntry>> assignment : assignments.entrySet()) {
+            Model.Question q = assignment.getKey();
+            if (assignment.getValue().size() != 1) { addReview(q, "ambiguous_answer_table"); continue; }
+            String answer = assignment.getValue().get(0).answer;
+            boolean inferred = q.reviewReasons.contains("choice_type_uncertain");
+            if (inferred && answer.matches("[A-Za-z]{1,26}")) {
+                Set<Character> keys = new HashSet<>();
+                for (char key : answer.toUpperCase(Locale.ROOT).toCharArray()) keys.add(key);
+                q.type = keys.size() > 1 ? "multiple_choice" : "single_choice";
+            }
+            applyExternalAnswer(q, answer);
+            if (inferred && !q.answers.isEmpty()) q.reviewReasons.remove("choice_type_uncertain");
+        }
+        for (Model.Question q : result.questions) {
+            if (covered.contains(q) && q.answers.isEmpty()) addReview(q, "unmatched_answer_table");
+            q.needsReview = !q.reviewReasons.isEmpty();
+        }
+    }
+
+    private static final class TableBlock {
+        final Model.Section previousSection;
+        final int endQuestionIndex;
+        final List<TableEntry> entries = new ArrayList<>();
+        String type;
+        String chapter = "";
+        boolean closedByQuestions;
+        boolean hasSelectors;
+        boolean conventionScope;
+        TableBlock(Model.Section section, int end) { previousSection = section; endQuestionIndex = end; }
+    }
+
+    private static final class TableEntry {
+        final String number, answer, type, chapter;
+        final Model.Line line;
+        TableEntry(AnswerTableParser.Entry entry, Model.Line line, String type, String chapter) {
+            number = entry.number; answer = entry.answer; this.line = line; this.type = type; this.chapter = chapter;
+        }
+    }
+
+    /** Local evidence wins: options before answer shape, then explicit blanks, then prose answers. */
+    private static String inferType(RawQuestion raw) {
+        String body = bodyWithBreaks(raw);
+        String content = questionContent(body);
+        Matcher label = ANSWER_LABEL.matcher(body);
+        boolean hasLabel = label.find();
+        String answer = hasLabel ? referenceText(body, label) : "";
+        List<Marker> options = optionMarkers(content);
+        raw.choiceTypeUncertain = false;
+        if (options.size() >= 2) {
+            if (!hasLabel) {
+                Matcher inline = ANSWER.matcher(content.substring(0, options.get(0).start));
+                while (inline.find()) answer = inline.group(1);
+            }
+            String letters = AnswerTableParser.ascii(answer).replaceAll("[\\s\u3000、,，;；]", "").toUpperCase(Locale.ROOT);
+            if (letters.matches("[A-Z]{1,26}")) {
+                Set<Character> keys = new HashSet<>();
+                for (char key : letters.toCharArray()) keys.add(key);
+                return keys.size() > 1 ? "multiple_choice" : "single_choice";
+            }
+            raw.choiceTypeUncertain = true;
+            return "single_choice";
+        }
+        if (hasLabel && answer.matches("√|✓|✔|×|✗|✘|正确|错误|对|错")) return "true_false";
+        Matcher inline = ANSWER.matcher(content);
+        while (inline.find()) if (inline.group(1).matches("[√✓✔×✗✘]")) return "true_false";
+        if (BLANK_PLACEHOLDER.matcher(content).find()) return "fill_blank";
+        if (hasLabel) return "short_answer";
+        if (!hasLabel) {
+            Set<Integer> sourceLines = new HashSet<>();
+            for (Model.Line line : raw.lines) sourceLines.add(line.globalIndex);
+            for (Model.Underline underline : raw.geometry.underlines) {
+                if (underline.matched && sourceLines.contains(underline.lineGlobal) && !underline.cleanText.trim().isEmpty()) return "fill_blank";
+            }
+        }
+        return "unknown";
+    }
+
+    /** Structural metadata is excluded from the question, but remains in sourceLines/originalSentence. */
+    private static String questionContent(String body) {
+        int end = body.length();
+        for (Pattern pattern : new Pattern[]{ANSWER_LABEL, PERSONAL_LABEL, ANALYSIS_LABEL, CONTROL_LABEL}) {
+            Matcher matcher = pattern.matcher(body);
+            if (matcher.find()) end = Math.min(end, matcher.start());
+        }
+        return body.substring(0, end).trim();
+    }
+
+    private static String stripTrailingMetadata(String text) {
+        int end = text.length();
+        for (Pattern pattern : new Pattern[]{PERSONAL_LABEL, ANALYSIS_LABEL, CONTROL_LABEL}) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) end = Math.min(end, matcher.start());
+        }
+        return text.substring(0, end).trim();
+    }
+
+    private static String referenceText(String body, Matcher label) {
+        return stripTrailingMetadata(body.substring(label.start(1)));
+    }
+
+    /** Explicit blank answers override PDF strokes, which may only underline an export label. */
+    private static void parseLabeledFill(RawQuestion raw, Model.Question q) {
+        String body = bodyWithBreaks(raw);
+        q.originalSentence = body;
+        q.stem = BLANK_PLACEHOLDER.matcher(questionContent(body)).replaceAll("____");
+        q.stemWithAnswer = q.stem;
+        Matcher label = ANSWER_LABEL.matcher(body);
+        if (!label.find()) { addReview(q, "no_reference_answer_marker"); return; }
+        String answer = referenceText(body, label);
+        Matcher numbered = NUMBERED_BLANK_ANSWER.matcher(answer);
+        List<Integer> starts = new ArrayList<>();
+        List<Integer> ends = new ArrayList<>();
+        List<Integer> numbers = new ArrayList<>();
+        while (numbered.find()) {
+            starts.add(numbered.start());
+            ends.add(numbered.end());
+            numbers.add(safeInt(numbered.group(1)));
+        }
+        if (!starts.isEmpty() && answer.substring(0, starts.get(0)).trim().isEmpty()) {
+            for (int i = 0; i < starts.size(); i++) {
+                if (numbers.get(i) == null || numbers.get(i) != i + 1) addReview(q, "numbered_blank_answer_order");
+                int end = i + 1 < starts.size() ? starts.get(i + 1) : answer.length();
+                q.answers.add(compact(answer.substring(ends.get(i), end)));
+            }
+        } else {
+            for (String part : answer.split("\\|\\|", -1)) q.answers.add(compact(part));
+        }
+        Matcher blanks = Pattern.compile("____").matcher(q.stem);
+        int count = 0;
+        while (blanks.find()) count++;
+        q.learningBlankCount = count;
+        if (count == 0 || count != q.answers.size()) addReview(q, "text_blank_count_mismatch");
+        if (q.answers.contains("")) addReview(q, "empty_reference_answer");
+        if (q.answers.stream().anyMatch(value -> value.trim().startsWith("\\") || value.trim().endsWith("\\"))) addReview(q, "invalid_answer_variants");
+    }
+
+    /** Detect repeated text only in a narrow physical margin; no document-specific keywords. */
+    private static Set<Integer> repeatedMarginLines(Model.Geometry geometry) {
+        Set<Integer> result = new HashSet<>();
+        if (geometry.pages.size() < 3) return result;
+        Map<Integer, Float> heights = new HashMap<>();
+        for (Model.PageInfo page : geometry.pages) heights.put(page.number, page.height);
+        Map<String, List<Model.Line>> candidates = new HashMap<>();
+        for (Model.Line line : geometry.lines) {
+            float height = heights.getOrDefault(line.page, 0f);
+            String text = line.text.trim();
+            if (line.footer || height <= 0 || text.isEmpty() || text.length() > 80) continue;
+            boolean top = line.baseline < height * .08f;
+            boolean bottom = line.baseline > height * .92f;
+            if (!top && !bottom) continue;
+            if (QUESTION_START.matcher(text).matches() || TYPE_TAG.matcher(text).find()
+                    || OPTION_MARKER.matcher(text).find() || ANSWER_LABEL.matcher(text).find()
+                    || PERSONAL_LABEL.matcher(text).find() || !"unknown".equals(sectionType(text))) continue;
+            String key = (top ? "top:" : "bottom:") + text;
+            if (text.matches("^(?:第\\s*)?\\d+\\s*(?:页|/\\s*\\d+)?$")) {
+                if (!(line.baseline > height * .97f || line.baseline < height * .04f)) continue;
+                key = (top ? "top:" : "bottom:") + "#page";
+            }
+            candidates.computeIfAbsent(key, k -> new ArrayList<>()).add(line);
+        }
+        int threshold = Math.max(3, (int) Math.ceil(geometry.pages.size() * .6));
+        for (List<Model.Line> lines : candidates.values()) {
+            Set<Integer> pages = new HashSet<>();
+            for (Model.Line line : lines) pages.add(line.page);
+            if (pages.size() < threshold) continue;
+            for (Model.Line line : lines) {
+                result.add(line.globalIndex);
+                line.footer = true;
+                geometry.footerLines++;
+            }
+        }
+        return result;
+    }
+
     private static final class RawQuestion {
         Model.Geometry geometry;
         Model.Section section;
@@ -656,6 +1171,13 @@ public final class QuestionParser {
         String originalNumber;
         Integer numberValue;
         boolean emptyStart;
+        boolean inAnalysis;
+        boolean inAnswer;
+        boolean numberedAnswerContent;
+        boolean inMetadata;
+        boolean typeConflict;
+        boolean autoType;
+        boolean choiceTypeUncertain;
         final List<Model.Line> lines = new ArrayList<>();
     }
 

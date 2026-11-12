@@ -3,7 +3,7 @@ package com.offlinequiz.app.backup
 import java.io.IOException
 
 const val BACKUP_FORMAT_NAME = "offlinequiz-backup"
-const val BACKUP_FORMAT_VERSION = 1
+const val BACKUP_FORMAT_VERSION = 2
 
 /** Machine-readable rejection reasons; the message is user-facing and never contains host paths. */
 enum class BackupError {

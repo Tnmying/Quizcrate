@@ -83,6 +83,14 @@ class QuestionEditViewModel(application: Application) : AndroidViewModel(applica
         mutate { it.copy(stem = value) }
     }
 
+    fun updateType(type: String) {
+        if (type !in setOf(QuestionTypes.SINGLE_CHOICE, QuestionTypes.MULTIPLE_CHOICE,
+                QuestionTypes.TRUE_FALSE, QuestionTypes.FILL_BLANK, QuestionTypes.SHORT_ANSWER)) return
+        mutate { q -> q.copy(type = type,
+            referenceAnswer = if (type == QuestionTypes.SHORT_ANSWER && q.referenceAnswer.isNullOrBlank()) q.answers.joinToString("；") else q.referenceAnswer)
+        }
+    }
+
     fun updateOptionKey(index: Int, value: String) {
         mutate { q ->
             if (index !in q.options.indices) return@mutate q

@@ -280,8 +280,20 @@ class BackupRejectionTest {
         val bytes = export(Fixture().source)
         assertRejected(
             BackupError.FUTURE_VERSION,
-            updateManifest(bytes) { it.put("formatVersion", 2) }
+            updateManifest(bytes) { it.put("formatVersion", com.offlinequiz.app.backup.BACKUP_FORMAT_VERSION + 1) }
         )
+    }
+
+    @Test
+    fun versionOneWithoutTextFieldStillRestores() = runTest {
+        val old = updateManifest(export(Fixture().source)) { manifest ->
+            manifest.put("formatVersion", 1)
+            val libraries = manifest.getJSONArray("libraries")
+            for (i in 0 until libraries.length()) libraries.getJSONObject(i).remove("textIncluded")
+        }
+        val restored = BackupReader().read(ByteArrayInputStream(old))
+        assertTrue(restored.libraries.isNotEmpty())
+        assertTrue(restored.libraries.all { it.record.sourceText == null })
     }
 
     @Test

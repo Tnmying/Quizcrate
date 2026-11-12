@@ -25,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Database schema version 3.
+ * Database schema version 4. v3 -> v4 adds a nullable text source on libraries.
  *
  * v1 -> v2 adds the practice session/answer tables. v2 -> v3 adds the session `source`
  * (normal practice vs wrongbook re-practice) and an index on `practice_answers.questionId`
@@ -43,7 +43,8 @@ data class LibraryEntity(
     val sourceFileName: String,
     val sourcePageCount: Int,
     val pdfRelativePath: String?,
-    val schemaVersion: Int
+    val schemaVersion: Int,
+    val sourceText: String? = null
 )
 
 @Entity(
@@ -445,7 +446,13 @@ abstract class QuizDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "offlinequiz.db"
-        const val VERSION = 3
+        const val VERSION = 4
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE libraries ADD COLUMN sourceText TEXT")
+            }
+        }
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -535,7 +542,7 @@ abstract class QuizDatabase : RoomDatabase() {
                 QuizDatabase::class.java,
                 NAME
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
                 .build()
         }

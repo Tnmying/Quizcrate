@@ -25,7 +25,11 @@ import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
 
 sealed interface StartPracticeOutcome {
-    data class Started(val sessionId: String, val total: Int) : StartPracticeOutcome
+    data class Started(
+        val sessionId: String,
+        val total: Int,
+        val initialState: PracticeState? = null
+    ) : StartPracticeOutcome
     data class NoEligible(val report: PracticeEligibilityReport) : StartPracticeOutcome
     data class Failed(val message: String) : StartPracticeOutcome
 }
@@ -104,8 +108,14 @@ class PracticeRepository(
             val history = practiceStore.historyForQuestion(libraryId, questionId)
             if (!com.offlinequiz.app.model.PracticeStatsCalculator.questionStats(question, history).historicalWrong)
                 return StartPracticeOutcome.Failed("这道题不在错题本中，请刷新后重试")
-            startSession(libraryId, PracticeModes.SEQUENTIAL, PracticeSources.SINGLE_REVIEW,
-                setOf(questionId), Random.Default)
+            val report = PracticeEligibility.evaluate(listOf(question))
+            if (report.eligible.isEmpty()) return StartPracticeOutcome.NoEligible(report)
+            val session = createSession(libraryId, PracticeModes.SEQUENTIAL, PracticeSources.SINGLE_REVIEW, report.eligible)
+            StartPracticeOutcome.Started(
+                session.id, session.total,
+                PracticeState(session, session.currentQuestion, null, emptyList(),
+                    PracticeResultSummary.fromAnswers(session.total, emptyList()))
+            )
         } catch (_: Exception) {
             StartPracticeOutcome.Failed("创建单题复习失败，请重试")
         }
@@ -134,27 +144,37 @@ class PracticeRepository(
             } else {
                 report.eligible.sortedWith(compareBy({ it.position }, { it.id }))
             }
-            val now = clock()
-            val session = PracticeSessionRecord(
-                id = idFactory(),
-                libraryId = libraryId,
-                mode = mode,
-                status = PracticeStatuses.ACTIVE,
-                questions = ordered.map { it.toPracticeSnapshot() },
-                currentIndex = 0,
-                phase = PracticePhases.ANSWERING,
-                draft = PracticeDraft(),
-                draftRevision = 0L,
-                createdAt = now,
-                updatedAt = now,
-                completedAt = null,
-                source = source
-            )
-            practiceStore.createSession(session)
+            val session = createSession(libraryId, mode, source, ordered)
             StartPracticeOutcome.Started(session.id, session.total)
         } catch (e: Exception) {
             StartPracticeOutcome.Failed("创建练习失败，未写入任何会话")
         }
+    }
+
+    private suspend fun createSession(
+        libraryId: String,
+        mode: String,
+        source: String,
+        ordered: List<StoredQuestion>
+    ): PracticeSessionRecord {
+        val now = clock()
+        val session = PracticeSessionRecord(
+            id = idFactory(),
+            libraryId = libraryId,
+            mode = mode,
+            status = PracticeStatuses.ACTIVE,
+            questions = ordered.map { it.toPracticeSnapshot() },
+            currentIndex = 0,
+            phase = PracticePhases.ANSWERING,
+            draft = PracticeDraft(),
+            draftRevision = 0L,
+            createdAt = now,
+            updatedAt = now,
+            completedAt = null,
+            source = source
+        )
+        practiceStore.createSession(session)
+        return session
     }
 
     suspend fun loadState(sessionId: String): PracticeState? {

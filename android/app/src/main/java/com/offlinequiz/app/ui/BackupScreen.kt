@@ -1,5 +1,7 @@
 package com.offlinequiz.app.ui
 
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,11 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.offlinequiz.app.ui.WarmButton as Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,8 +59,10 @@ fun BackupScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 title = { Text("备份与恢复") }
             )
         }
@@ -73,11 +75,13 @@ fun BackupScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                "备份文件含题库和练习记录，未加密。导出/恢复都只在本机读写；恢复作为新副本导入，现有题库不变。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            GlassCard {
+                Text(
+                    "备份文件含题库和练习记录，未加密。导出/恢复都只在本机读写；恢复作为新副本导入，现有题库不变。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             when (val current = state) {
                 BackupUiState.Idle -> {
                     Button(
@@ -88,7 +92,7 @@ fun BackupScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("导出全部题库与练习记录") }
-                    OutlinedButton(
+                    GlassActionButton(
                         onClick = { importPicker.launch(arrayOf("*/*")) },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("从备份文件恢复") }
@@ -167,7 +171,7 @@ private fun PreviewCard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
-    Card {
+    GlassPanel {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -176,6 +180,7 @@ private fun PreviewCard(
             Text("题库 ${summary.libraryCount} 个")
             Text("题目 ${summary.questionCount} 题（需处理 ${summary.pendingReviewQuestions}）")
             Text("练习记录 ${summary.sessionCount} 个 · 作答 ${summary.answerCount} 条")
+            if (summary.textSourceLibraries > 0) Text("包含文字原文：${summary.textSourceLibraries} 个题库")
             Text(
                 "来源 PDF：包含 ${summary.pdfIncludedLibraries} 个，缺失 ${summary.pdfMissingLibraries} 个" +
                     if (summary.pdfMissingLibraries > 0) "（缺失的题库仍可恢复，原页查看不可用）" else ""
@@ -189,7 +194,7 @@ private fun PreviewCard(
             Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) {
                 Text("确认导入为新副本")
             }
-            OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+            GlassActionButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
                 Text("取消")
             }
         }

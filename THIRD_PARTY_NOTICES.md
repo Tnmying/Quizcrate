@@ -33,7 +33,7 @@
 
 - `examples/offlinequiz-example.pdf` 和生成源码是项目自制 7 题示例，不包含私有真实题库。
 - 示例 PDF 内嵌 Noto Serif SC 字体子集。字体使用 SIL OFL 1.1；保留 [OFL 原文](docs/licenses/Noto-Serif-OFL-1.1.txt)及[实际本机源字体的版权/许可元数据](docs/licenses/Noto-Serif-SC-font-metadata.txt)。生成脚本仅在 `work/` 派生兼容性 cmap 副本。
-- 项目图标源文件位于 `docs/design/assets/tixia-icon-concept-v1.png`，用于制作启动图标。辅助工具的使用说明见 [开发与致谢](ACKNOWLEDGMENTS.md)。
+- 白蓝版启动图标源文件位于 `docs/design/assets/quizcrate-glass-icon-v2.png`。应用内使用项目素材库中雪澪与米露的插图和庆祝动画。辅助工具的使用说明见 [开发与致谢](ACKNOWLEDGMENTS.md)。
 
 ## APK 随包许可材料
 

@@ -89,6 +89,9 @@ data class PracticeRecordedAnswer(
     val userAnswer: PracticeUserAnswer,
     val submittedAt: Long
 ) {
+    val advancesWithoutFeedback: Boolean
+        get() = kind == PracticeAnswerKinds.SKIPPED || result == PracticeResults.CORRECT
+
     val resultLabel: String
         get() = when (result) {
             PracticeResults.CORRECT -> "正确"

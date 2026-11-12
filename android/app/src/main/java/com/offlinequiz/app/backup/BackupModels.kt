@@ -13,7 +13,8 @@ data class BackupLibraryMeta(
     val questionCount: Int,
     val sessionCount: Int,
     val answerCount: Int,
-    val pdf: BackupPdfInfo?
+    val pdf: BackupPdfInfo?,
+    val hasSourceText: Boolean = record.sourceText != null
 )
 
 /** A PDF payload described by the manifest and validated while streaming. */
@@ -23,7 +24,7 @@ data class BackupPdfInfo(
     val sha256: String
 )
 
-enum class BackupEntryKind { QUESTIONS, SESSIONS, ANSWERS, PDF }
+enum class BackupEntryKind { QUESTIONS, SESSIONS, ANSWERS, PDF, TEXT }
 
 /** One non-manifest ZIP entry with its expected role and record count. */
 data class BackupEntryRef(
@@ -80,7 +81,8 @@ data class RestoreSummary(
     val pendingReviewQuestions: Int,
     val activeSessions: Int,
     val completedSessions: Int,
-    val supersededSessions: Int
+    val supersededSessions: Int,
+    val textSourceLibraries: Int = 0
 )
 
 /** Pure plan; generating it never writes Room or copies files. */
@@ -124,5 +126,7 @@ fun sessionsEntry(ordinal: Int): String = "libraries/${libraryEntryOrdinal(ordin
 fun answersEntry(ordinal: Int): String = "libraries/${libraryEntryOrdinal(ordinal)}/answers.ndjson"
 
 fun pdfEntry(ordinal: Int): String = "libraries/${libraryEntryOrdinal(ordinal)}/resources/source.pdf"
+
+fun textEntry(ordinal: Int): String = "libraries/${libraryEntryOrdinal(ordinal)}/resources/source.txt"
 
 const val MANIFEST_ENTRY = "manifest.json"

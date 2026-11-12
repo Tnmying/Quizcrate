@@ -38,6 +38,7 @@ object BackupJson {
                     .put("updatedAt", meta.record.updatedAt)
                     .put("sourceFileName", meta.record.sourceFileName)
                     .put("sourcePageCount", meta.record.sourcePageCount)
+                    .put("textIncluded", meta.hasSourceText)
                     .put("originalSchemaVersion", meta.record.schemaVersion)
                     .put("questionCount", meta.questionCount)
                     .put("sessionCount", meta.sessionCount)
@@ -152,11 +153,15 @@ object BackupJson {
                 questionCount = questionCount,
                 sessionCount = sessionCount,
                 answerCount = answerCount,
-                pdf = pdf
+                pdf = pdf,
+                hasSourceText = version >= 2 && item.bool("textIncluded")
             )
         }
         if (metas.map { it.record.id }.toSet().size != metas.size) {
             fail(BackupError.DUPLICATE_ID, "备份中存在重复的题库标识")
+        }
+        if (metas.any { it.hasSourceText && (it.pdf != null || it.record.sourcePageCount != 0) }) {
+            fail(BackupError.BAD_MANIFEST, "文字来源与 PDF 来源冲突")
         }
 
         val entriesArray = root.array("entries")
@@ -172,6 +177,7 @@ object BackupJson {
                 "sessions" -> BackupEntryKind.SESSIONS
                 "answers" -> BackupEntryKind.ANSWERS
                 "pdf" -> BackupEntryKind.PDF
+                "text" -> if (version >= 2) BackupEntryKind.TEXT else fail(BackupError.BAD_FIELD, "旧版备份不能包含文字来源条目")
                 else -> fail(BackupError.BAD_FIELD, "未知的备份条目类型")
             }
             val ordinal = item.int("ordinal")
@@ -181,6 +187,7 @@ object BackupJson {
                 BackupEntryKind.SESSIONS -> sessionsEntry(ordinal)
                 BackupEntryKind.ANSWERS -> answersEntry(ordinal)
                 BackupEntryKind.PDF -> pdfEntry(ordinal)
+                BackupEntryKind.TEXT -> textEntry(ordinal)
             }
             if (path != expectedPath) fail(BackupError.BAD_PATH, "备份条目名不符合格式：$path")
             val recordCount = item.int("recordCount")
@@ -190,6 +197,7 @@ object BackupJson {
                 BackupEntryKind.SESSIONS -> meta.sessionCount
                 BackupEntryKind.ANSWERS -> meta.answerCount
                 BackupEntryKind.PDF -> 0
+                BackupEntryKind.TEXT -> 0
             }
             if (recordCount != expectedCount) {
                 fail(BackupError.BAD_FIELD, "条目记录数与清单不一致：$path")
@@ -443,6 +451,7 @@ object BackupJson {
             expected.add(sessionsEntry(meta.ordinal))
             expected.add(answersEntry(meta.ordinal))
             meta.pdf?.let { expected.add(it.entry) }
+            if (meta.hasSourceText) expected.add(textEntry(meta.ordinal))
         }
         val actual = entries.map { it.path }
         if (actual.size != actual.toSet().size) fail(BackupError.DUPLICATE_ENTRY, "备份清单包含重复条目")

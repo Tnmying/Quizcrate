@@ -21,7 +21,7 @@ internal fun LibraryInformationDialog(library: LibraryRecord, count: Int, pendin
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(library.name, style = MaterialTheme.typography.titleMedium)
                 Text("共 $count 题 · 需处理 $pending")
-                Text("来源：${library.sourceFileName}（${library.sourcePageCount} 页）")
+                Text("来源：${library.sourceFileName}" + if (library.sourceText != null) "（文字）" else "（${library.sourcePageCount} 页）")
                 Text("创建：${formatTimestamp(library.createdAt)}")
                 Text("更新：${formatTimestamp(library.updatedAt)}")
             }

@@ -131,7 +131,8 @@ data class PracticeQuestionStats(
     val lastPracticeAt: Long?,
     val contentChanged: Boolean,
     val historicalWrong: Boolean,
-    val mastery: PracticeMastery
+    val mastery: PracticeMastery,
+    val optionTexts: List<String> = emptyList()
 ) {
     val automaticTotal: Int get() = automaticCorrect + automaticIncorrect
     val selfTotal: Int get() = remembered + forgotten
@@ -322,7 +323,8 @@ object PracticeStatsCalculator {
             lastPracticeAt = lastPracticeAt,
             contentChanged = contentChanged,
             historicalWrong = historicalWrong,
-            mastery = mastery
+            mastery = mastery,
+            optionTexts = question.options.map { it.text }
         )
     }
 

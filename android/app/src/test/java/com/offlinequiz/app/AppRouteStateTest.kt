@@ -163,10 +163,13 @@ class AppRouteStateTest {
             practiceSessionId = "s1",
             practiceReturn = Route.WRONGBOOK,
             editorReturn = Route.HISTORY,
-            historyReturn = Route.LIBRARY
+            historyReturn = Route.LIBRARY,
+            wrongbookReturn = Route.WRONGBOOK_INDEX,
+            backupReturn = Route.PROFILE,
+            libraryReturn = Route.RECORDS
         )
         val saved = state.toPersistedList()
-        assertEquals(8, saved.size)
+        assertEquals(11, saved.size)
         assertEquals(state, AppRouteState.fromPersistedList(saved))
         // A truncated list must not crash the restore path.
         assertEquals(AppRouteState(), AppRouteState.fromPersistedList(emptyList()))

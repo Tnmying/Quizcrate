@@ -18,7 +18,10 @@ data class AppRouteState(
     val practiceReturn: String = Route.LIBRARY,
     val editorReturn: String = Route.LIBRARY,
     val historyReturn: String = Route.LIBRARY,
-    val questionFilter: String = "ALL"
+    val questionFilter: String = "ALL",
+    val wrongbookReturn: String = Route.LIBRARY,
+    val backupReturn: String = Route.HOME,
+    val libraryReturn: String = Route.HOME
 ) {
 
     object Route {
@@ -31,16 +34,25 @@ data class AppRouteState(
         const val EDITOR = "editor"
         const val BACKUP = "backup"
         const val QUESTIONS = "questions"
+        const val WRONGBOOK_INDEX = "wrongbook-index"
+        const val PROFILE = "profile"
+        const val RECORDS = "records"
+        const val HELP = "help"
+        const val ABOUT = "about"
     }
 
-    fun startBackup(): AppRouteState = copy(route = Route.BACKUP)
+    fun startBackup(): AppRouteState = copy(route = Route.BACKUP, backupReturn = route)
 
-    fun backFromBackup(): AppRouteState = copy(route = Route.HOME)
+    fun backFromBackup(): AppRouteState = copy(route = backupReturn)
 
     fun openLibrary(id: String): AppRouteState =
-        copy(route = Route.LIBRARY, libraryId = id, questionId = "")
+        copy(route = Route.LIBRARY, libraryId = id, questionId = "",
+            libraryReturn = if (route == Route.BACKUP) backupReturn else if (route == Route.RECORDS) Route.RECORDS else Route.HOME)
 
-    fun openWrongbook(): AppRouteState = copy(route = Route.WRONGBOOK)
+    fun openWrongbook(id: String = libraryId): AppRouteState = copy(
+        route = Route.WRONGBOOK, libraryId = id,
+        wrongbookReturn = if (route == Route.WRONGBOOK_INDEX) Route.WRONGBOOK_INDEX else Route.LIBRARY
+    )
 
     fun openQuestionManager(onlyPending: Boolean = true): AppRouteState =
         copy(route = Route.QUESTIONS, questionFilter = if (onlyPending) "ATTENTION" else "ALL", questionId = "")
@@ -67,10 +79,10 @@ data class AppRouteState(
 
     fun backFromHistory(): AppRouteState = copy(route = historyReturn)
 
-    fun backFromWrongbook(): AppRouteState = copy(route = Route.LIBRARY)
+    fun backFromWrongbook(): AppRouteState = copy(route = wrongbookReturn)
 
     fun backFromLibrary(): AppRouteState =
-        copy(route = Route.HOME, libraryId = "", practiceSessionId = "")
+        copy(route = libraryReturn, libraryId = "", practiceSessionId = "")
 
     fun backFromEditor(): AppRouteState = copy(
         route = editorReturn,
@@ -94,7 +106,7 @@ data class AppRouteState(
         practiceReturn,
         editorReturn,
         historyReturn,
-        questionFilter
+        questionFilter, wrongbookReturn, backupReturn, libraryReturn
     )
 
     companion object {
@@ -108,7 +120,10 @@ data class AppRouteState(
                 practiceReturn = values[4],
                 editorReturn = values[5],
                 historyReturn = values[6],
-                questionFilter = values.getOrElse(7) { "ALL" }
+                questionFilter = values.getOrElse(7) { "ALL" },
+                wrongbookReturn = values.getOrElse(8) { Route.LIBRARY },
+                backupReturn = values.getOrElse(9) { Route.HOME },
+                libraryReturn = values.getOrElse(10) { Route.HOME }
             )
         }
 

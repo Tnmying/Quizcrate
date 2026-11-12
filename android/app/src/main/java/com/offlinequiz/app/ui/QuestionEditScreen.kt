@@ -1,5 +1,8 @@
 package com.offlinequiz.app.ui
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -17,15 +20,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.offlinequiz.app.ui.MotionAlertDialog as AlertDialog
 import com.offlinequiz.app.ui.WarmButton as Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.offlinequiz.app.model.QuestionTypes
 import com.offlinequiz.app.model.StoredQuestion
@@ -61,6 +62,7 @@ fun QuestionEditScreen(
 
     val question = viewModel.question
     var showPdf by remember { mutableStateOf(false) }
+    var showText by remember { mutableStateOf(false) }
     var confirmDiscard by remember { mutableStateOf(false) }
     val pdfFile: File? = remember(question?.id, viewModel.library?.pdfRelativePath) {
         viewModel.pdfFile()
@@ -79,14 +81,16 @@ fun QuestionEditScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 title = { Text(if (fromPractice) "校正题库中的本题" else "编辑题目") }
             )
         },
         bottomBar = {
             if (question != null) {
-                Surface(tonalElevation = 3.dp) {
+                GlassPanel(Modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -142,7 +146,7 @@ fun QuestionEditScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (fromPractice) {
-                    Card {
+                    GlassPanel {
                         Text(
                             "这里修改题库中的当前版本，可能与本轮题目不同。保存并确认后，新建的练习会使用修改后的内容；当前轮次继续使用原题和原答案，已有作答记录不重判。返回可继续本轮，也可回题库另开新一轮。",
                             modifier = Modifier.padding(14.dp),
@@ -150,8 +154,10 @@ fun QuestionEditScreen(
                         )
                     }
                 }
-                HeaderCard(question = question, libraryName = viewModel.library?.name, onViewPdf = {
-                    if (pdfFile == null) {
+                HeaderCard(question = question, libraryName = viewModel.library?.name, textSource = viewModel.library?.sourceText != null, onViewPdf = {
+                    if (viewModel.library?.sourceText != null) {
+                        showText = true
+                    } else if (pdfFile == null) {
                         Toast.makeText(context, "原 PDF 私有副本不可用", Toast.LENGTH_SHORT).show()
                     } else {
                         showPdf = true
@@ -163,11 +169,7 @@ fun QuestionEditScreen(
                 }
 
                 if (viewModel.hasUnsavedChanges() && question.confirmed) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    ) {
+                    GlassPanel(tint = MaterialTheme.colorScheme.secondary.copy(alpha = .12f)) {
                         Text(
                             "已修改题目内容，保存后需要重新确认。",
                             style = MaterialTheme.typography.bodySmall,
@@ -189,6 +191,9 @@ fun QuestionEditScreen(
             onDismiss = { showPdf = false }
         )
     }
+    if (showText) viewModel.library?.sourceText?.let { text ->
+        SourceTextDialog(text, question?.sourceLines?.map { it.line }?.toSet().orEmpty()) { showText = false }
+    }
 
     if (confirmDiscard) {
         AlertDialog(
@@ -209,12 +214,8 @@ fun QuestionEditScreen(
 }
 
 @Composable
-private fun HeaderCard(question: StoredQuestion, libraryName: String?, onViewPdf: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
+private fun HeaderCard(question: StoredQuestion, libraryName: String?, textSource: Boolean, onViewPdf: () -> Unit) {
+    GlassPanel {
         Column(Modifier.padding(14.dp)) {
             Text(
                 "${QuestionTypes.label(question.type)} · 原编号 ${question.originalNumber ?: "—"}",
@@ -222,14 +223,15 @@ private fun HeaderCard(question: StoredQuestion, libraryName: String?, onViewPdf
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "来源页：${question.sourcePages.joinToString("、").ifEmpty { "—" }}" +
+                (if (textSource) "来源行：${question.sourceLines.firstOrNull()?.line ?: "—"}～${question.sourceLines.lastOrNull()?.line ?: "—"}"
+                else "来源页：${question.sourcePages.joinToString("、").ifEmpty { "—" }}") +
                     (libraryName?.let { " · 题库：$it" } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onViewPdf) { Text("查看原页") }
+                Button(onClick = onViewPdf) { Text(if (textSource) "查看原文" else "查看原页") }
                 Spacer(Modifier.weight(1f))
                 if (QuestionReview.needsAttention(question)) {
                     Text(
@@ -245,9 +247,9 @@ private fun HeaderCard(question: StoredQuestion, libraryName: String?, onViewPdf
 
 @Composable
 private fun ErrorCard(errors: List<String>) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+    GlassPanel(tint = MaterialTheme.colorScheme.error.copy(alpha = .12f)) {
         Column(Modifier.padding(14.dp)) {
-            Text("保存前请修正", fontWeight = FontWeight.Bold)
+            Text("保存前请修正", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
             Spacer(Modifier.height(4.dp))
             errors.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
         }
@@ -257,7 +259,7 @@ private fun ErrorCard(errors: List<String>) {
 @Composable
 private fun OriginalEvidenceCard(question: StoredQuestion) {
     var expanded by remember(question.id) { mutableStateOf(false) }
-    Card {
+    GlassPanel {
         Column(Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier
@@ -318,12 +320,32 @@ private fun OriginalEvidenceCard(question: StoredQuestion) {
 
 @Composable
 private fun EditorForm(question: StoredQuestion, viewModel: QuestionEditViewModel) {
-    Card {
+    var showTypePicker by remember(question.id) { mutableStateOf(false) }
+    if (showTypePicker) Dialog(onDismissRequest = { showTypePicker = false }) {
+        GlassPanel {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("调整本题题型", style = MaterialTheme.typography.titleMedium)
+                listOf(QuestionTypes.SINGLE_CHOICE, QuestionTypes.MULTIPLE_CHOICE, QuestionTypes.TRUE_FALSE,
+                    QuestionTypes.FILL_BLANK, QuestionTypes.SHORT_ANSWER).forEach { type ->
+                    TextButton(enabled = !viewModel.saving, onClick = { viewModel.updateType(type); showTypePicker = false }, modifier = Modifier.fillMaxWidth()) {
+                        Text((if (question.type == type) "✓ " else "") + QuestionTypes.label(type),
+                            color = if (question.type == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        }
+    }
+    GlassPanel {
         Column(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("题型：${QuestionTypes.label(question.type)}", modifier = Modifier.weight(1f))
+                TextButton(enabled = !viewModel.saving, onClick = { showTypePicker = true }) { Text("调整") }
+            }
             OutlinedTextField(
+                colors = glassFieldColors(),
                 value = question.stem,
                 onValueChange = viewModel::updateStem,
                 label = { Text("题干") },
@@ -338,6 +360,7 @@ private fun EditorForm(question: StoredQuestion, viewModel: QuestionEditViewMode
                 QuestionTypes.TRUE_FALSE -> TrueFalseEditor(question, viewModel)
                 QuestionTypes.FILL_BLANK -> FillBlankEditor(question, viewModel)
                 QuestionTypes.SHORT_ANSWER -> OutlinedTextField(
+                    colors = glassFieldColors(),
                     value = question.referenceAnswer.orEmpty(),
                     onValueChange = viewModel::updateReferenceAnswer,
                     label = { Text("参考答案") },
@@ -346,7 +369,7 @@ private fun EditorForm(question: StoredQuestion, viewModel: QuestionEditViewMode
                     modifier = Modifier.fillMaxWidth()
                 )
                 else -> Text(
-                    "该题题型未识别，只支持修改题干。可保留为草稿并等待后续处理。",
+                    "这道题的题型暂不明确，可点击上方“调整”选择题型后校正内容。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -366,6 +389,7 @@ private fun ChoiceEditor(question: StoredQuestion, viewModel: QuestionEditViewMo
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
+                colors = glassFieldColors(),
                 value = option.key,
                 onValueChange = { viewModel.updateOptionKey(index, it) },
                 label = { Text("标记") },
@@ -374,6 +398,7 @@ private fun ChoiceEditor(question: StoredQuestion, viewModel: QuestionEditViewMo
                 modifier = Modifier.width(76.dp)
             )
             OutlinedTextField(
+                colors = glassFieldColors(),
                 value = option.text,
                 onValueChange = { viewModel.updateOptionText(index, it) },
                 label = { Text("选项内容") },
@@ -455,11 +480,7 @@ private fun FillBlankEditor(question: StoredQuestion, viewModel: QuestionEditVie
     )
 
     question.answers.forEachIndexed { index, answer ->
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
+        GlassPanel {
             Column(
                 modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -481,6 +502,7 @@ private fun FillBlankEditor(question: StoredQuestion, viewModel: QuestionEditVie
                     ) { Text("删除") }
                 }
                 OutlinedTextField(
+                    colors = glassFieldColors(),
                     value = answer,
                     onValueChange = { viewModel.updateBlankAnswer(index, it) },
                     label = { Text("答案") },
@@ -499,6 +521,7 @@ private fun FillBlankEditor(question: StoredQuestion, viewModel: QuestionEditVie
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
+                            colors = glassFieldColors(),
                             value = accepted,
                             onValueChange = {
                                 viewModel.updateAcceptableAnswer(index, acceptedIndex, it)

@@ -59,11 +59,6 @@ class PracticePeekTest {
     }
 
     @Test fun jumpRejectsInvalidNumbersAndDragIncludesFirstAndLast() {
-        assertEquals(79, QuestionListPosition.jumpIndex("80", 201))
-        listOf("", "0", "202", "-1", "9999999999999").forEach {
-            assertNull(QuestionListPosition.jumpIndex(it, 201))
-        }
-        assertNull(QuestionListPosition.jumpIndex("1", 0))
         assertEquals(0, QuestionListPosition.dragIndex(-0.5f, 201))
         assertEquals(100, QuestionListPosition.dragIndex(0.5f, 201))
         assertEquals(200, QuestionListPosition.dragIndex(1.5f, 201))

@@ -8,6 +8,7 @@ import com.offlinequiz.app.model.QuestionTypes
 import com.offlinequiz.app.model.QuizOption
 import com.offlinequiz.app.model.SourceLineRef
 import com.offlinequiz.app.model.StoredQuestion
+import com.offlinequiz.app.model.withFillAnswerVariants
 import pdfprobe.Model
 
 object QuestionMapper {
@@ -59,7 +60,7 @@ object QuestionMapper {
                 confirmed = false,
                 confirmedAt = null,
                 editedAt = null
-            )
+            ).withFillAnswerVariants()
         }
     }
 
@@ -106,7 +107,8 @@ fun LibraryEntity.toRecord(): LibraryRecord = LibraryRecord(
     sourceFileName = sourceFileName,
     sourcePageCount = sourcePageCount,
     pdfRelativePath = pdfRelativePath,
-    schemaVersion = schemaVersion
+    schemaVersion = schemaVersion,
+    sourceText = sourceText
 )
 
 fun LibraryRecord.toEntity(): LibraryEntity = LibraryEntity(
@@ -117,7 +119,8 @@ fun LibraryRecord.toEntity(): LibraryEntity = LibraryEntity(
     sourceFileName = sourceFileName,
     sourcePageCount = sourcePageCount,
     pdfRelativePath = pdfRelativePath,
-    schemaVersion = schemaVersion
+    schemaVersion = schemaVersion,
+    sourceText = sourceText
 )
 
 fun QuestionEntity.toModel(): StoredQuestion = StoredQuestion(
@@ -149,7 +152,7 @@ fun QuestionEntity.toModel(): StoredQuestion = StoredQuestion(
     confirmed = confirmed,
     confirmedAt = confirmedAt,
     editedAt = editedAt
-)
+).withFillAnswerVariants()
 
 fun StoredQuestion.toEntity(): QuestionEntity = QuestionEntity(
     id = id,

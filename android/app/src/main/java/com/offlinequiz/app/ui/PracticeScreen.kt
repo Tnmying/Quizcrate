@@ -1,10 +1,16 @@
 package com.offlinequiz.app.ui
 
+import androidx.compose.ui.graphics.Color
+import android.animation.ValueAnimator
+import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
+import android.widget.ImageView
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,18 +18,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.offlinequiz.app.ui.WarmButton as Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -31,17 +39,24 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.offlinequiz.app.R
 import com.offlinequiz.app.model.PracticeAnswerKinds
 import com.offlinequiz.app.model.PracticeModes
 import com.offlinequiz.app.model.PracticePhases
@@ -61,11 +76,12 @@ import com.offlinequiz.app.viewmodel.PracticeViewModel
 @Composable
 fun PracticeScreen(
     sessionId: String,
+    initialState: PracticeState? = null,
     onBack: () -> Unit,
     onCorrectQuestion: (String) -> Unit
 ) {
     val viewModel: PracticeViewModel = viewModel(key = "practice-$sessionId")
-    LaunchedEffect(sessionId) { viewModel.load(sessionId) }
+    LaunchedEffect(sessionId) { viewModel.load(sessionId, initialState) }
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel.message) {
@@ -75,29 +91,76 @@ fun PracticeScreen(
         }
     }
 
-    BackHandler { viewModel.requestExit(onBack) }
+    var reviewPosition by rememberSaveable(sessionId) { mutableIntStateOf(-1) }
+    val state = viewModel.state ?: initialState
+    val session = state?.session
+    val livePosition = session?.currentIndex ?: 0
+    val reviewing = reviewPosition in 0 until livePosition && session?.phase != PracticePhases.COMPLETED
+    val visiblePosition = if (reviewing) reviewPosition else livePosition
+    val questionActionsEnabled = !viewModel.loading && !viewModel.saving && !viewModel.exiting
+
+    BackHandler {
+        if (reviewing) reviewPosition = -1 else viewModel.requestExit(onBack)
+    }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (PracticeSources.isWrongbook(viewModel.state?.session?.source.orEmpty())) {
-                            PracticeSources.label(viewModel.state?.session?.source.orEmpty())
-                        } else {
-                            "练习"
+            Row(
+                Modifier.fillMaxWidth().windowInsetsPadding(TopAppBarDefaults.windowInsets)
+                    .heightIn(min = 64.dp).padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (PracticeSources.isWrongbook(session?.source.orEmpty())) {
+                        PracticeSources.label(session?.source.orEmpty())
+                    } else {
+                        "练习"
+                    },
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (session != null && state.currentQuestion != null &&
+                    session.phase != PracticePhases.COMPLETED
+                ) {
+                    Row(Modifier.glassSurface(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (session.source != PracticeSources.SINGLE_REVIEW) {
+                            IconButton(
+                                enabled = visiblePosition > 0 && questionActionsEnabled,
+                                onClick = { reviewPosition = visiblePosition - 1 }
+                            ) {
+                                Icon(AppIcons.Previous, contentDescription = "上一题")
+                            }
                         }
-                    )
-                },
-                actions = {
-                    if (viewModel.state?.currentQuestion != null) {
-                        TextButton(
-                            onClick = { viewModel.requestCorrection(onCorrectQuestion) },
-                            enabled = !viewModel.saving && !viewModel.exiting && !viewModel.loading
-                        ) { Text("纠错/校正本题") }
+                        if (reviewing) {
+                            IconButton(onClick = {
+                                reviewPosition = if (reviewPosition + 1 < livePosition) reviewPosition + 1 else -1
+                            }) {
+                                Icon(AppIcons.Arrow, contentDescription = if (reviewPosition + 1 < livePosition) "下一题" else "回到当前题")
+                            }
+                        } else {
+                            if (session.phase == PracticePhases.ANSWERING) {
+                                IconButton(onClick = viewModel::skip, enabled = questionActionsEnabled) {
+                                    // 保留读屏语义，同时避开去广告工具查找的“跳过”关键词。
+                                    Icon(AppIcons.SkipQuestion, contentDescription = "略过本题")
+                                }
+                                IconButton(onClick = viewModel::peek, enabled = questionActionsEnabled) {
+                                    Icon(AppIcons.PeekAnswer, contentDescription = "偷看答案")
+                                }
+                            }
+                            IconButton(
+                                onClick = { viewModel.requestCorrection(onCorrectQuestion) },
+                                enabled = questionActionsEnabled
+                            ) {
+                                Icon(AppIcons.ReportQuestion, contentDescription = "报告题目错误")
+                            }
+                        }
                     }
                 }
-            )
+            }
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
@@ -120,13 +183,13 @@ fun PracticeScreen(
                 Text(viewModel.error ?: "练习读取失败")
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onBack, enabled = !viewModel.exiting, modifier = Modifier.weight(1f)) { Text("返回题库") }
-                    OutlinedButton(onClick = viewModel::retry, enabled = !viewModel.exiting, modifier = Modifier.weight(1f)) {
+                    Button(onClick = onBack, enabled = !viewModel.exiting, modifier = Modifier.weight(1f)) { Text("返回上一页") }
+                    GlassActionButton(onClick = viewModel::retry, enabled = !viewModel.exiting, modifier = Modifier.weight(1f)) {
                         Text("重试")
                     }
                 }
             }
-            viewModel.state == null -> Column(
+            state == null -> Column(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -134,9 +197,12 @@ fun PracticeScreen(
                 CircularProgressIndicator()
             }
             else -> {
-                val state = viewModel.state!!
                 if (state.session.phase == PracticePhases.COMPLETED) {
                     PracticeResultView(state = state, onBack = onBack, modifier = Modifier.padding(padding))
+                } else if (reviewing) {
+                    val question = state.session.questions[reviewPosition]
+                    val answer = state.answers.firstOrNull { it.position == reviewPosition }
+                    PreviousQuestionView(Modifier.padding(padding), question, answer, reviewPosition, state.session.total)
                 } else {
                     val question = state.currentQuestion
                     if (question == null) {
@@ -150,7 +216,7 @@ fun PracticeScreen(
                         ) {
                             Text("题目数据不完整，请返回题库重新开始")
                             Spacer(Modifier.height(16.dp))
-                            Button(onClick = onBack) { Text("返回题库") }
+                            Button(onClick = onBack) { Text("返回上一页") }
                         }
                     } else {
                         PracticeQuestionView(
@@ -176,55 +242,115 @@ private fun PracticeQuestionView(
     val scroll = rememberScrollState()
     LaunchedEffect(state.session.currentIndex, state.session.phase) { scroll.scrollTo(0) }
     val isFeedback = state.session.phase == PracticePhases.FEEDBACK
+    val showSubmit = !isFeedback && PracticeJudgeUi.isAutomatic(question.type) &&
+        !viewModel.draft.referenceRevealed
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scroll)
-            .padding(16.dp)
             .then(rememberRevealModifier(question.questionId)),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            "第 ${(state.session.currentIndex + 1).coerceAtMost(state.session.total)} / ${state.session.total} 题 · " +
-                "${PracticeModes.label(state.session.mode)}练习",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "${question.typeLabel} · 原编号 ${question.originalNumber ?: "—"}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(question.stem, style = MaterialTheme.typography.titleMedium)
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
+            val stemLimit = maxHeight / 2
+            Column(
+                modifier = Modifier.fillMaxSize()
+                    .then(if (isFeedback) Modifier.verticalScroll(scroll) else Modifier)
+                    .padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (state.session.source != PracticeSources.SINGLE_REVIEW) {
+                    Text(
+                        "第 ${(state.session.currentIndex + 1).coerceAtMost(state.session.total)} / ${state.session.total} 题 · " +
+                            "${PracticeModes.label(state.session.mode)}练习",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (isFeedback) {
+                    PracticeQuestionCard(question)
+                    FeedbackView(
+                        question = question,
+                        feedback = state.feedback,
+                        saving = viewModel.saving,
+                        isLast = state.session.currentIndex == state.session.total - 1,
+                        shortAnswerMatch = viewModel.shortAnswerMatch,
+                        onNext = viewModel::next
+                    )
+                    Spacer(Modifier.height(4.dp))
+                } else {
+                    // An unusually long stem must still leave room for the answer area.
+                    key(state.session.currentIndex) {
+                        Box(Modifier.heightIn(max = stemLimit).verticalScroll(rememberScrollState())) {
+                            PracticeQuestionCard(question)
+                        }
+                    }
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (viewModel.draftSaveFailed) {
+                            Text(
+                                "草稿保存失败：当前输入仍保留在屏幕上；请修改或返回重试。",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        AnsweringView(question = question, viewModel = viewModel)
+                    }
+                }
             }
         }
-
-        if (viewModel.draftSaveFailed) {
-            Text(
-                "草稿保存失败：当前输入仍保留在屏幕上；请修改或返回重试。",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
+        if (showSubmit) {
+            Button(
+                onClick = viewModel::submitAutomatic,
+                enabled = viewModel.canSubmitAutomatic() && !viewModel.exiting,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+                    .heightIn(min = 52.dp)
+            ) {
+                Text(if (viewModel.saving) "保存中…" else "提交答案")
+            }
         }
+    }
+}
 
-        if (isFeedback) {
-            FeedbackView(
-                question = question,
-                feedback = state.feedback,
-                saving = viewModel.saving,
-                isLast = state.session.currentIndex == state.session.total - 1,
-                shortAnswerMatch = viewModel.shortAnswerMatch,
-                onNext = viewModel::next
+@Composable
+private fun PreviousQuestionView(
+    modifier: Modifier,
+    question: PracticeQuestionSnapshot,
+    answer: PracticeRecordedAnswer?,
+    position: Int,
+    total: Int
+) {
+    val scroll = rememberScrollState()
+    LaunchedEffect(position) { scroll.scrollTo(0) }
+    Column(
+        modifier.fillMaxSize().verticalScroll(scroll).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("第 ${position + 1} / $total 题 · 回看", style = MaterialTheme.typography.titleSmall)
+        PracticeQuestionCard(question)
+        question.options.forEach { option -> Text("${option.key}. ${option.text}") }
+        if (answer != null) {
+            Text("作答结果：${answer.resultLabel}")
+            if (answer.result == PracticeResults.INCORRECT || answer.result == PracticeResults.FORGOTTEN) {
+                Text("你的答案：${formatUserAnswer(question, answer)}")
+                Text(if (answer.kind == PracticeAnswerKinds.SELF_ASSESSMENT) "参考内容：" else "正确答案：")
+                ReferenceText(question)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PracticeQuestionCard(question: PracticeQuestionSnapshot) {
+    GlassPanel {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "${question.typeLabel} · 原编号 ${question.originalNumber ?: "—"}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
             )
-        } else {
-            AnsweringView(question = question, viewModel = viewModel)
+            Text(question.stem, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -299,6 +425,7 @@ private fun AnsweringView(
             )
             for (index in question.answers.indices) {
                 OutlinedTextField(
+                    colors = glassFieldColors(),
                     value = viewModel.draft.blankAnswers.getOrNull(index).orEmpty(),
                     onValueChange = { viewModel.updateBlank(index, it) },
                     label = { Text("第 ${index + 1} 空") },
@@ -310,6 +437,7 @@ private fun AnsweringView(
 
         QuestionTypes.SHORT_ANSWER -> {
             OutlinedTextField(
+                colors = glassFieldColors(),
                 value = viewModel.draft.text,
                 onValueChange = viewModel::updateShortText,
                 label = { Text("你的作答（可选）") },
@@ -351,29 +479,6 @@ private fun AnsweringView(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (PracticeJudgeUi.isAutomatic(question.type) && !viewModel.draft.referenceRevealed) {
-            Button(
-                onClick = viewModel::submitAutomatic,
-                enabled = viewModel.canSubmitAutomatic(),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-            ) {
-                Text(if (viewModel.saving) "保存中…" else "提交答案")
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = viewModel::skip, enabled = enabled, modifier = Modifier.weight(1f)) {
-                Text("跳过本题")
-            }
-            OutlinedButton(onClick = viewModel::peek, enabled = enabled, modifier = Modifier.weight(1f)) {
-                Text("偷看答案")
-            }
-        }
-    }
     if (viewModel.saving) {
         Text(
             "正在保存作答，请稍候…",
@@ -409,17 +514,7 @@ private fun WarmOptionRow(
     } else {
         Modifier.selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
     }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-        )
-    ) {
+    GlassPanel(tint = MaterialTheme.colorScheme.primary.copy(alpha = if (selected) .20f else 0f)) {
         Row(
             modifier = Modifier.fillMaxWidth().then(interaction).heightIn(min = 56.dp)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -431,11 +526,7 @@ private fun WarmOptionRow(
 
 @Composable
 private fun ReferencePanel(question: PracticeQuestionSnapshot) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
+    GlassPanel {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("参考答案", fontWeight = FontWeight.Bold)
             ReferenceText(question)
@@ -450,11 +541,7 @@ private fun ReferencePanel(question: PracticeQuestionSnapshot) {
 @Composable
 private fun ShortAnswerMatchPanel(match: ShortAnswerMatchResult?) {
     if (match == null) return
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
+    GlassPanel {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 "文字匹配辅助（仅供参考）",
@@ -529,34 +616,34 @@ private fun FeedbackView(
         Text("反馈读取失败，请返回题库重新打开。", color = MaterialTheme.colorScheme.error)
         return
     }
-    if (feedback.kind == PracticeAnswerKinds.SKIPPED) {
-        Text("本题已跳过，不计作答。")
+    if (feedback.advancesWithoutFeedback) {
+        Text(if (feedback.kind == PracticeAnswerKinds.SKIPPED) "本题已跳过，不计作答。" else "回答正确")
         Button(onClick = onNext, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
             Text(if (saving) "正在进入下一题…" else if (isLast) "完成本轮" else "进入下一题")
         }
         return
     }
     val title = if (feedback.kind == PracticeAnswerKinds.PEEKED) "已偷看答案 · 计入错题" else when (feedback.result) {
-        PracticeResults.CORRECT -> "回答正确"
         PracticeResults.INCORRECT -> "回答错误"
         PracticeResults.REMEMBERED -> "自评：记得"
         PracticeResults.FORGOTTEN -> "自评：没记住"
-        PracticeResults.SKIPPED -> "本题已跳过"
         else -> "已记录"
     }
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = when (feedback.result) {
-                PracticeResults.CORRECT,
-                PracticeResults.REMEMBERED -> MaterialTheme.colorScheme.secondaryContainer
-                PracticeResults.INCORRECT,
-                PracticeResults.FORGOTTEN -> MaterialTheme.colorScheme.errorContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
-    ) {
+    val colors = MaterialTheme.colorScheme
+    val tint = when (feedback.result) {
+        PracticeResults.REMEMBERED -> colors.secondary.copy(alpha = .16f)
+        PracticeResults.INCORRECT, PracticeResults.FORGOTTEN -> colors.error.copy(alpha = .14f)
+        else -> Color.Transparent
+    }
+    GlassPanel(tint = tint) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (feedback.result == PracticeResults.INCORRECT ||
+                    feedback.result == PracticeResults.FORGOTTEN) colors.error else colors.onSurface
+            )
             Text(
                 "本题已提交并锁定，不能重复提交。",
                 style = MaterialTheme.typography.bodySmall,
@@ -592,7 +679,7 @@ private fun FeedbackView(
 private fun ReferenceText(question: PracticeQuestionSnapshot) {
     when (question.type) {
         QuestionTypes.SINGLE_CHOICE,
-        QuestionTypes.MULTIPLE_CHOICE -> Text(question.answers.joinToString("、").ifEmpty { "未设置" })
+        QuestionTypes.MULTIPLE_CHOICE -> Text(formatChoiceAnswers(question, question.answers).ifEmpty { "未设置" })
         QuestionTypes.TRUE_FALSE -> {
             val value = question.answers.firstOrNull()?.trim().orEmpty()
             Text(
@@ -621,6 +708,12 @@ private fun ReferenceText(question: PracticeQuestionSnapshot) {
     }
 }
 
+private fun formatChoiceAnswers(question: PracticeQuestionSnapshot, keys: List<String>): String =
+    keys.joinToString("；") { key ->
+        val option = question.options.firstOrNull { it.key.trim().equals(key.trim(), ignoreCase = true) }
+        option?.text?.takeIf { it.isNotBlank() }?.let { "$key. $it" } ?: key
+    }
+
 private fun formatUserAnswer(
     question: PracticeQuestionSnapshot,
     feedback: PracticeRecordedAnswer
@@ -628,7 +721,7 @@ private fun formatUserAnswer(
     val answer: PracticeUserAnswer = feedback.userAnswer
     return when (question.type) {
         QuestionTypes.SINGLE_CHOICE,
-        QuestionTypes.MULTIPLE_CHOICE -> answer.selectedKeys.joinToString("、").ifEmpty { "未作答" }
+        QuestionTypes.MULTIPLE_CHOICE -> formatChoiceAnswers(question, answer.selectedKeys).ifEmpty { "未作答" }
         QuestionTypes.TRUE_FALSE -> when (answer.selectedKeys.firstOrNull()) {
             "√" -> "正确（√）"
             "×" -> "错误（×）"
@@ -658,6 +751,7 @@ private fun PracticeResultView(state: PracticeState, onBack: () -> Unit, modifie
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val singleReview = state.session.source == PracticeSources.SINGLE_REVIEW
+        if (!singleReview) RoundCelebration()
         Text(if (singleReview) {
             if (summary.totals.correct > 0) "本题已复习" else "本题练习结束"
         } else "本轮完成", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -665,7 +759,7 @@ private fun PracticeResultView(state: PracticeState, onBack: () -> Unit, modifie
             Text(PracticeSources.label(state.session.source), style = MaterialTheme.typography.labelLarge)
         }
         Text("共 ${summary.total} 题", style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
+        GlassPanel {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("本轮已刷 ${summary.totals.effective} 题")
                 Text("正确 ${summary.totals.correct} · 错误 ${summary.totals.incorrect}")
@@ -680,9 +774,30 @@ private fun PracticeResultView(state: PracticeState, onBack: () -> Unit, modifie
             }
         }
         Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(if (singleReview) "返回错题本" else "返回题库")
+            Text("返回上一页")
         }
     }
+}
+
+@Composable
+private fun RoundCelebration() {
+    AndroidView(
+        modifier = Modifier.size(88.dp),
+        factory = { context ->
+            ImageView(context).apply {
+                importantForAccessibility = ImageView.IMPORTANT_FOR_ACCESSIBILITY_NO
+                val source = ImageDecoder.createSource(resources, R.raw.mascot_round_celebration)
+                val celebration = ImageDecoder.decodeDrawable(source)
+                setImageDrawable(celebration)
+                if (celebration is AnimatedImageDrawable && ValueAnimator.areAnimatorsEnabled()) {
+                    celebration.repeatCount = 0
+                    celebration.start()
+                }
+            }
+        },
+        onReset = null,
+        onRelease = { (it.drawable as? AnimatedImageDrawable)?.stop() }
+    )
 }
 
 /** UI-only helper; judging itself lives in pure PracticeJudge. */

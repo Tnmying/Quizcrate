@@ -81,11 +81,15 @@ class PracticeViewModel(
 
     /**
      * Entry point of the practice screen. Re-entrance is decided by the running [loadJob], never by
-     * [loading]: a fresh ViewModel has no request in flight, so the first call must reach the
-     * repository and must always end by clearing [loading].
+     * [loading]. A newly persisted single review can use its prepared snapshot directly.
      */
-    fun load(sessionId: String) {
+    fun load(sessionId: String, initialState: PracticeState? = null) {
         requestedSessionId = sessionId
+        if (state == null && initialState?.session?.id == sessionId) {
+            loadedSessionId = sessionId
+            applyState(initialState)
+            return
+        }
         startLoad(sessionId)
     }
 
@@ -120,9 +124,9 @@ class PracticeViewModel(
                 }
                 loadedSessionId = sessionId
                 if (loaded.session.phase == PracticePhases.FEEDBACK &&
-                    loaded.feedback?.kind == PracticeAnswerKinds.SKIPPED) {
+                    loaded.feedback?.advancesWithoutFeedback == true) {
                     saving = true
-                    try { advanceSkipped(loaded) } finally { saving = false }
+                    try { advanceWithoutFeedback(loaded) } finally { saving = false }
                 } else {
                     applyState(loaded)
                 }
@@ -211,7 +215,7 @@ class PracticeViewModel(
         if (!PracticeJudge.isAutomaticType(question.type)) return
         val userAnswer = draft.toUserAnswer()
         if (!PracticeJudge.hasAnswer(question, draft)) {
-            message = "请先作答，或使用“跳过”"
+            message = "请先作答"
             return
         }
         saving = true
@@ -259,7 +263,7 @@ class PracticeViewModel(
         }
     }
 
-    private suspend fun advanceSkipped(current: PracticeState) {
+    private suspend fun advanceWithoutFeedback(current: PracticeState) {
         when (val outcome = repository.advance(current.session.id, current.session.currentIndex)) {
             is AdvancePracticeOutcome.Advanced -> applyState(outcome.state)
             is AdvancePracticeOutcome.Failed -> {
@@ -290,7 +294,7 @@ class PracticeViewModel(
                 if (outcome is SubmitPracticeOutcome.Recorded &&
                     outcome.answer.kind == PracticeAnswerKinds.SKIPPED) {
                     handleSubmitOutcome(outcome, current.session.currentIndex)
-                    state?.let { advanceSkipped(it) }
+                    state?.let { advanceWithoutFeedback(it) }
                 } else {
                     handleSubmitOutcome(outcome, current.session.currentIndex)
                 }
@@ -307,8 +311,8 @@ class PracticeViewModel(
         saving = true
         message = null
         viewModelScope.launch {
-            if (current.feedback?.kind == PracticeAnswerKinds.SKIPPED) {
-                try { advanceSkipped(current) } finally { saving = false }
+            if (current.feedback?.advancesWithoutFeedback == true) {
+                try { advanceWithoutFeedback(current) } finally { saving = false }
                 return@launch
             }
             when (val outcome = repository.advance(current.session.id, position)) {
@@ -363,6 +367,14 @@ class PracticeViewModel(
     private suspend fun finishSubmit(outcome: SubmitPracticeOutcome, position: Int) {
         try {
             handleSubmitOutcome(outcome, position)
+            val current = state
+            if (outcome is SubmitPracticeOutcome.Recorded &&
+                current?.session?.phase == PracticePhases.FEEDBACK &&
+                current.session.currentIndex == position &&
+                current.feedback?.advancesWithoutFeedback == true
+            ) {
+                advanceWithoutFeedback(current)
+            }
         } catch (_: Exception) {
             message = "作答已保存，但反馈读取失败，请返回题库重试"
         } finally {

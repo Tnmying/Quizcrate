@@ -54,7 +54,8 @@ class BackupWriter(private val limits: BackupLimits = BackupLimits()) {
             val digest = pdfDigests[header.record.id]
             BackupLibraryMeta(
                 ordinal = index,
-                record = header.record.copy(pdfRelativePath = null),
+                record = header.record.copy(pdfRelativePath = null, sourceText = null),
+                hasSourceText = header.record.sourceText != null,
                 questionCount = header.questionCount,
                 sessionCount = header.sessionCount,
                 answerCount = header.answerCount,
@@ -96,6 +97,9 @@ class BackupWriter(private val limits: BackupLimits = BackupLimits()) {
                 if (header.value.pdfAvailable) {
                     add(BackupEntryRef(pdfEntry(header.index), BackupEntryKind.PDF, header.index, 0))
                 }
+                if (header.value.record.sourceText != null) {
+                    add(BackupEntryRef(textEntry(header.index), BackupEntryKind.TEXT, header.index, 0))
+                }
             }
         }
         val manifest = BackupManifest(
@@ -128,6 +132,14 @@ class BackupWriter(private val limits: BackupLimits = BackupLimits()) {
             writeRecords(zip, questionsEntry(index), questions, budget) { BackupJson.encodeQuestion(it) }
             writeRecords(zip, sessionsEntry(index), sessions, budget) { BackupJson.encodeSession(it) }
             writeRecords(zip, answersEntry(index), answers, budget) { BackupJson.encodeAnswer(it) }
+            header.record.sourceText?.let { text ->
+                val bytes = text.toByteArray(Charsets.UTF_8)
+                zip.putNextEntry(ZipEntry(textEntry(index)))
+                val limited = LimitedOutputStream(zip, minOf(limits.maxEntryBytes, limits.maxStringBytes.toLong(), 512L * 1024), budget)
+                limited.write(bytes)
+                limited.flush()
+                zip.closeEntry()
+            }
 
             val digest = pdfDigests[header.record.id]
             if (digest != null) {

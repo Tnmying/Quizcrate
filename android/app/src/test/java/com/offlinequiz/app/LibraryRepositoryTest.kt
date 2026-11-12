@@ -25,6 +25,55 @@ import pdfprobe.Model
 
 class LibraryRepositoryTest {
 
+    @Test
+    fun changingOnlyTypeIsSavedAndClearsPreviousConfirmation() = runTest {
+        val store = FakeStore()
+        val q = testQuestion(id = "type-q", libraryId = "type-lib").copy(
+            referenceAnswer = "自制参考说明", confirmed = true, confirmedAt = 1L)
+        store.libraries["type-lib"] = testLibrary("type-lib")
+        store.questions[q.id] = q
+        val changed = q.copy(type = QuestionTypes.SHORT_ANSWER)
+        assertNotEquals(q.editableContent(), changed.editableContent())
+        val result = repository(store).saveQuestion(changed, confirm = false)
+        assertTrue(result is SaveOutcome.Saved && result.changed)
+        assertEquals(QuestionTypes.SHORT_ANSWER, store.questions.getValue(q.id).type)
+        assertFalse(store.questions.getValue(q.id).confirmed)
+        assertEquals(q.originalAnswers, store.questions.getValue(q.id).originalAnswers)
+    }
+
+    @Test
+    fun mixedImportRetainsUnclearQuestionForLaterTypeCorrection() = runTest {
+        val text = "1.缺少答案的自制题。\n2.[判断题]自制判断题。\n正确答案：对"
+        val parsed = TextImportParser.parse(text)
+        val store = FakeStore()
+        val repo = repository(store)
+        val id = repo.importLibrary("混合", "mixed.txt", 0, parsed.result, sourceText = text)
+        val unknown = store.questions.values.first { it.type == QuestionTypes.UNKNOWN }
+        val result = repo.saveQuestion(unknown.copy(type = QuestionTypes.SHORT_ANSWER, referenceAnswer = "补充的答案"), confirm = true)
+        assertTrue(result is SaveOutcome.Saved)
+        assertEquals(2, store.questions.values.count { it.libraryId == id })
+        assertTrue(store.questions.getValue(unknown.id).confirmed)
+    }
+
+    @Test
+    fun textImportSavesSourceWithoutPdfAndFailedWriteLeavesNoLibrary() = runTest {
+        val source = "一、单选题\n1.水？\nA.水 B.气\n答案：A"
+        val imported = TextImportParser.parse(source)
+        val store = FakeStore()
+        val repo = repository(store)
+        val id = repo.importLibrary("文字题库", "文字.txt", 0, imported.result, sourceText = source)
+        assertEquals(source, store.libraries.getValue(id).sourceText)
+        assertNull(store.libraries.getValue(id).pdfRelativePath)
+        assertEquals(1, store.questions.size)
+        store.failCreate = true
+        try {
+            repo.importLibrary("失败", "文字.txt", 0, imported.result, sourceText = source)
+            fail("write must fail")
+        } catch (_: RepositoryException) { }
+        assertEquals(1, store.libraries.size)
+        assertEquals(1, store.questions.size)
+    }
+
     private class FakeStore : LibraryStore {
         val libraries = linkedMapOf<String, LibraryRecord>()
         val questions = linkedMapOf<String, StoredQuestion>()

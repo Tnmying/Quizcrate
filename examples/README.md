@@ -1,11 +1,16 @@
 # 自制五题型示例
 
+v0.3.0 可导入[五题模板](offlinequiz-import-template.txt)，混合识别五种题型，第 4 题含两个空、每空两种可接受答案。另有[混合文本](offlinequiz-mixed-example.txt)、[分区答案表](offlinequiz-section-answers-example.txt)示例。详见[导入规范](../docs/IMPORT_FORMATS.md)。
+
 **简体中文** | [English](README.en.md)
 
 这份小型示例覆盖五种题型，可用于检查导入、解析、练习和备份流程，不摘录真实题库。
 
 ## 文件
 
+- `offlinequiz-section-answers-example.txt`：4 道自制题，覆盖章节重置编号、局部答案表、全角题号/选项和一行多条答案，使用默认自动识别即可。
+- `offlinequiz-mixed-example.txt`：10 道自制混合题，前半带逐题标签、后半无标签；默认自动识别时预期五题型各 2 题，不需要指定整份题库类型。
+- `offlinequiz-text-example.txt`：v0.3.0 的 UTF-8 自制示例；5 题、五种题型各 1 题。选择 TXT 或粘贴全文，默认自动识别即可。填空的多空答案以 `||` 分隔。
 - `offlinequiz-example.pdf`：1 页、文字层、A4，覆盖五题型。
 - `MakeExamplePdf.java`：用 PDFBox 2.0.27 生成 PDF 的源码；题目文本、答案、下划线位置都在这里。
 - `prepare-example-font.py`：把本机 Noto Serif SC 的兼容区 cmap 映射去掉，避免 PDFBox 写出 `U+2F00` 等康熙部首而不是 `U+4E00`。

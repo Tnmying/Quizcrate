@@ -103,8 +103,13 @@ class WrongbookViewModel(
     var committing by mutableStateOf(false)
         private set
 
-    var startedPracticeId by mutableStateOf<String?>(null)
+    var startingSingleReview by mutableStateOf(false)
         private set
+
+    var startedPractice by mutableStateOf<StartPracticeOutcome.Started?>(null)
+        private set
+
+    val startedPracticeId: String? get() = startedPractice?.sessionId
 
     var firstUnpracticableId by mutableStateOf<String?>(null)
         private set
@@ -273,7 +278,8 @@ class WrongbookViewModel(
 
     /** Feedback for the blocked back/continue paths while [committing]. */
     fun notifyCommitInProgress() {
-        if (committing) message = "正在创建新一轮，完成前不能取消或离开"
+        if (committing) message = if (startingSingleReview) "正在打开单题复习，请稍候"
+            else "正在创建新一轮，完成前不能取消或离开"
     }
 
     /**
@@ -310,22 +316,27 @@ class WrongbookViewModel(
         }
         // Any pending full-round confirmation is invalidated before starting this isolated review.
         cancelPendingStart()
+        startingSingleReview = true
         starting = true
         committing = true
         message = null
         viewModelScope.launch {
             try {
                 when (val result = practiceRepository.startSingleReview(libraryId, questionId)) {
-                    is StartPracticeOutcome.Started -> startedPracticeId = result.sessionId
+                    is StartPracticeOutcome.Started -> startedPractice = result
                     is StartPracticeOutcome.NoEligible -> message = "当前题目暂不可练习，请先在题目管理中处理"
                     is StartPracticeOutcome.Failed -> message = result.message
                 }
-            } finally { committing = false; starting = false }
+            } finally {
+                committing = false
+                starting = false
+                startingSingleReview = false
+            }
         }
     }
 
     fun consumeStartedPractice() {
-        startedPracticeId = null
+        startedPractice = null
     }
 
     fun consumeMessage() {
@@ -364,7 +375,7 @@ class WrongbookViewModel(
             dueQuestionIds = practicableDue.map { it.questionId }
         )) {
             is StartPracticeOutcome.Started -> {
-                startedPracticeId = outcome.sessionId
+                startedPractice = outcome
                 firstUnpracticableId = null
                 pendingStartMode = null
                 pendingExpectedActiveId = null

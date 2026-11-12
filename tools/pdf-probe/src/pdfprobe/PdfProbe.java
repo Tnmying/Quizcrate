@@ -272,8 +272,8 @@ public final class PdfProbe {
         summary.put("total", parsed.questions.size());
 
         Map<String, Object> byType = new LinkedHashMap<>();
-        for (Model.Section section : parsed.sections) {
-            byType.put(section.type, section.count);
+        for (Model.Question question : parsed.questions) {
+            byType.put(question.type, ((Number) byType.getOrDefault(question.type, 0)).intValue() + 1);
         }
         summary.put("byType", byType);
 
@@ -289,32 +289,25 @@ public final class PdfProbe {
         summary.put("reviewReasons", reviewReasons);
 
         Map<String, Object> numbering = new LinkedHashMap<>();
-        for (Model.Section section : parsed.sections) {
+        for (String type : byType.keySet()) {
             List<Integer> numbers = new ArrayList<>();
             for (Model.Question q : parsed.questions) {
-                if (q.type.equals(section.type) && q.numberValue != null) numbers.add(q.numberValue);
+                if (q.type.equals(type) && q.numberValue != null) numbers.add(q.numberValue);
             }
             numbers.sort(Integer::compareTo);
             Map<String, Object> n = new LinkedHashMap<>();
-            n.put("count", section.count);
+            n.put("count", byType.get(type));
             if (!numbers.isEmpty()) {
                 n.put("min", numbers.get(0));
                 n.put("max", numbers.get(numbers.size() - 1));
-                Set<Integer> unique = new LinkedHashSet<>(numbers);
                 List<Object> missing = new ArrayList<>();
-                for (int i = numbers.get(0); i <= numbers.get(numbers.size() - 1); i++) {
-                    if (!unique.contains(i)) missing.add(i);
-                }
+                for (Model.Anomaly anomaly : parsed.anomalies) if ("missing_number".equals(anomaly.type) && type.equals(anomaly.section)) missing.add(anomaly.number);
                 n.put("missing", missing);
-                Map<Integer, Integer> counts = new LinkedHashMap<>();
-                for (Integer value : numbers) counts.put(value, counts.getOrDefault(value, 0) + 1);
                 List<Object> duplicates = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> e : counts.entrySet()) {
-                    if (e.getValue() > 1) duplicates.add(e.getKey());
-                }
+                for (Model.Anomaly anomaly : parsed.anomalies) if ("duplicate_number".equals(anomaly.type) && type.equals(anomaly.section)) duplicates.add(anomaly.number);
                 n.put("duplicates", duplicates);
             }
-            numbering.put(section.type, n);
+            numbering.put(type, n);
         }
         summary.put("numbering", numbering);
 

@@ -1,0 +1,536 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "52022b168ad9d206fb0164ca01b23665",
+    "entities": [
+      {
+        "tableName": "libraries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `sourceFileName` TEXT NOT NULL, `sourcePageCount` INTEGER NOT NULL, `pdfRelativePath` TEXT, `schemaVersion` INTEGER NOT NULL, `sourceText` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceFileName",
+            "columnName": "sourceFileName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePageCount",
+            "columnName": "sourcePageCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pdfRelativePath",
+            "columnName": "pdfRelativePath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceText",
+            "columnName": "sourceText",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "questions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `libraryId` TEXT NOT NULL, `position` INTEGER NOT NULL, `type` TEXT NOT NULL, `originalNumber` TEXT, `numberValue` INTEGER, `sectionTitle` TEXT, `stem` TEXT NOT NULL, `stemWithAnswer` TEXT, `originalSentence` TEXT, `referenceAnswer` TEXT, `optionRawText` TEXT, `optionsJson` TEXT NOT NULL, `answersJson` TEXT NOT NULL, `acceptableAnswersJson` TEXT NOT NULL, `sourcePagesJson` TEXT NOT NULL, `sourceLinesJson` TEXT NOT NULL, `blanksJson` TEXT NOT NULL, `learningBlankCount` INTEGER NOT NULL, `originalReviewReasonsJson` TEXT NOT NULL, `originalNeedsReview` INTEGER NOT NULL, `originalStem` TEXT NOT NULL, `originalOptionsJson` TEXT NOT NULL, `originalAnswersJson` TEXT NOT NULL, `originalBlanksJson` TEXT NOT NULL, `confirmed` INTEGER NOT NULL, `confirmedAt` INTEGER, `editedAt` INTEGER, PRIMARY KEY(`id`), FOREIGN KEY(`libraryId`) REFERENCES `libraries`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "libraryId",
+            "columnName": "libraryId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalNumber",
+            "columnName": "originalNumber",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "numberValue",
+            "columnName": "numberValue",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sectionTitle",
+            "columnName": "sectionTitle",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "stem",
+            "columnName": "stem",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stemWithAnswer",
+            "columnName": "stemWithAnswer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "originalSentence",
+            "columnName": "originalSentence",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "referenceAnswer",
+            "columnName": "referenceAnswer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "optionRawText",
+            "columnName": "optionRawText",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "optionsJson",
+            "columnName": "optionsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "answersJson",
+            "columnName": "answersJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "acceptableAnswersJson",
+            "columnName": "acceptableAnswersJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePagesJson",
+            "columnName": "sourcePagesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceLinesJson",
+            "columnName": "sourceLinesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blanksJson",
+            "columnName": "blanksJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "learningBlankCount",
+            "columnName": "learningBlankCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalReviewReasonsJson",
+            "columnName": "originalReviewReasonsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalNeedsReview",
+            "columnName": "originalNeedsReview",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalStem",
+            "columnName": "originalStem",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalOptionsJson",
+            "columnName": "originalOptionsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalAnswersJson",
+            "columnName": "originalAnswersJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalBlanksJson",
+            "columnName": "originalBlanksJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confirmed",
+            "columnName": "confirmed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confirmedAt",
+            "columnName": "confirmedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "editedAt",
+            "columnName": "editedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_questions_libraryId",
+            "unique": false,
+            "columnNames": [
+              "libraryId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_questions_libraryId` ON `${TABLE_NAME}` (`libraryId`)"
+          },
+          {
+            "name": "index_questions_libraryId_position",
+            "unique": true,
+            "columnNames": [
+              "libraryId",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_questions_libraryId_position` ON `${TABLE_NAME}` (`libraryId`, `position`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "libraries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "libraryId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "practice_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `libraryId` TEXT NOT NULL, `mode` TEXT NOT NULL, `status` TEXT NOT NULL, `questionOrderJson` TEXT NOT NULL, `questionsJson` TEXT NOT NULL, `currentIndex` INTEGER NOT NULL, `phase` TEXT NOT NULL, `draftJson` TEXT NOT NULL, `draftRevision` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `completedAt` INTEGER, `source` TEXT NOT NULL DEFAULT 'normal', PRIMARY KEY(`id`), FOREIGN KEY(`libraryId`) REFERENCES `libraries`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "libraryId",
+            "columnName": "libraryId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questionOrderJson",
+            "columnName": "questionOrderJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questionsJson",
+            "columnName": "questionsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentIndex",
+            "columnName": "currentIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phase",
+            "columnName": "phase",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "draftJson",
+            "columnName": "draftJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "draftRevision",
+            "columnName": "draftRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'normal'"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_practice_sessions_libraryId",
+            "unique": false,
+            "columnNames": [
+              "libraryId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_sessions_libraryId` ON `${TABLE_NAME}` (`libraryId`)"
+          },
+          {
+            "name": "index_practice_sessions_libraryId_status",
+            "unique": false,
+            "columnNames": [
+              "libraryId",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_sessions_libraryId_status` ON `${TABLE_NAME}` (`libraryId`, `status`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "libraries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "libraryId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "practice_answers",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `questionId` TEXT NOT NULL, `position` INTEGER NOT NULL, `kind` TEXT NOT NULL, `userAnswerJson` TEXT NOT NULL, `result` TEXT NOT NULL, `referenceSnapshotJson` TEXT NOT NULL, `idempotencyKey` TEXT NOT NULL, `submittedAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`sessionId`) REFERENCES `practice_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questionId",
+            "columnName": "questionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userAnswerJson",
+            "columnName": "userAnswerJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "result",
+            "columnName": "result",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenceSnapshotJson",
+            "columnName": "referenceSnapshotJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idempotencyKey",
+            "columnName": "idempotencyKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "submittedAt",
+            "columnName": "submittedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_practice_answers_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_answers_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_practice_answers_questionId",
+            "unique": false,
+            "columnNames": [
+              "questionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_answers_questionId` ON `${TABLE_NAME}` (`questionId`)"
+          },
+          {
+            "name": "index_practice_answers_idempotencyKey",
+            "unique": true,
+            "columnNames": [
+              "idempotencyKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_practice_answers_idempotencyKey` ON `${TABLE_NAME}` (`idempotencyKey`)"
+          },
+          {
+            "name": "index_practice_answers_sessionId_position",
+            "unique": true,
+            "columnNames": [
+              "sessionId",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_practice_answers_sessionId_position` ON `${TABLE_NAME}` (`sessionId`, `position`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "practice_sessions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '52022b168ad9d206fb0164ca01b23665')"
+    ]
+  }
+}

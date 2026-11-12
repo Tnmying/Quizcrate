@@ -33,7 +33,7 @@ The standard Apache 2.0 text is in [Apache-2.0.txt](docs/licenses/Apache-2.0.txt
 
 - `examples/offlinequiz-example.pdf` and its generator contain seven original questions, not private question-bank content.
 - The PDF embeds a Noto Serif SC subset under SIL OFL 1.1. Preserve the [OFL text](docs/licenses/Noto-Serif-OFL-1.1.txt) and [copyright/license metadata from the local source font](docs/licenses/Noto-Serif-SC-font-metadata.txt). The generator derives a compatibility-cmap copy only in `work/`.
-- The icon source is `docs/design/assets/tixia-icon-concept-v1.png`, used to prepare the launcher icon. See [development acknowledgments](ACKNOWLEDGMENTS.en.md) for assistance used during development.
+- The blue-and-white launcher icon source is `docs/design/assets/quizcrate-glass-icon-v2.png`. The app uses Xueling and Milou illustrations and a celebration animation from the project's asset collection. See [development acknowledgments](ACKNOWLEDGMENTS.en.md) for assistance used during development.
 
 ## License materials bundled in the APK
 

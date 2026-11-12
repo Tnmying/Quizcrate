@@ -234,8 +234,8 @@ class PracticeViewModelEntryTest {
             position = 0,
             questionId = "q1",
             kind = PracticeAnswerKinds.AUTOMATIC,
-            result = PracticeResults.CORRECT,
-            userAnswer = PracticeUserAnswer(selectedKeys = listOf("A"))
+            result = PracticeResults.INCORRECT,
+            userAnswer = PracticeUserAnswer(selectedKeys = listOf("B"))
         )
         val viewModel = viewModel(store)
 
@@ -244,8 +244,8 @@ class PracticeViewModelEntryTest {
 
         assertFalse(viewModel.loading)
         assertEquals(PracticePhases.FEEDBACK, viewModel.state?.session?.phase)
-        assertEquals(PracticeResults.CORRECT, viewModel.state?.feedback?.result)
-        assertEquals(listOf("A"), viewModel.state?.feedback?.userAnswer?.selectedKeys)
+        assertEquals(PracticeResults.INCORRECT, viewModel.state?.feedback?.result)
+        assertEquals(listOf("B"), viewModel.state?.feedback?.userAnswer?.selectedKeys)
         assertTrue("feedback must not reopen an empty draft", viewModel.draft.selectedKeys.isEmpty())
         assertEquals("q1", viewModel.state?.currentQuestion?.questionId)
 
@@ -313,8 +313,8 @@ class PracticeViewModelEntryTest {
 
         assertEquals(1, store.submitCalls)
         assertEquals(1, store.answerMap.size)
-        assertEquals(PracticePhases.FEEDBACK, viewModel.state?.session?.phase)
-        assertNotNull(viewModel.state?.feedback)
+        assertEquals(PracticePhases.COMPLETED, viewModel.state?.session?.phase)
+        assertNull(viewModel.state?.feedback)
         assertFalse("feedback must finish with saving cleared", viewModel.saving)
     }
 
@@ -367,7 +367,7 @@ class PracticeViewModelEntryTest {
         val vm = viewModel(store)
         vm.load("s")
         advanceUntilIdle()
-        vm.selectOption("A")
+        vm.selectOption("B")
         vm.submitAutomatic()
         var opened = 0
         vm.requestCorrection { opened++ }
@@ -389,13 +389,31 @@ class PracticeViewModelEntryTest {
     }
 
     @Test
+    fun correctAnswerAdvancesWithoutShowingReference() = viewModelTest {
+        val store = FakePracticeStore()
+        store.sessions["s"] = session("s", listOf(single("q1"), single("q2")))
+        val vm = viewModel(store)
+        vm.load("s")
+        advanceUntilIdle()
+
+        vm.selectOption("A")
+        vm.submitAutomatic()
+        advanceUntilIdle()
+
+        assertEquals("q2", vm.state?.currentQuestion?.questionId)
+        assertEquals(PracticePhases.ANSWERING, vm.state?.session?.phase)
+        assertNull(vm.state?.feedback)
+        assertEquals(PracticeResults.CORRECT, store.answerMap.getValue("s:0").result)
+    }
+
+    @Test
     fun feedbackNavigationIsBlockedWhileAdvancing() = viewModelTest {
         val store = FakePracticeStore()
         store.sessions["s"] = session("s", listOf(single("q1"), single("q2")))
         val vm = viewModel(store)
         vm.load("s")
         advanceUntilIdle()
-        vm.selectOption("A")
+        vm.selectOption("B")
         vm.submitAutomatic()
         advanceUntilIdle()
         vm.next()

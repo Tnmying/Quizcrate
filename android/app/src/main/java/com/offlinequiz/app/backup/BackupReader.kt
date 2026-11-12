@@ -75,6 +75,11 @@ class BackupReader(
                 ?: throw BackupException(BackupError.UNKNOWN_ENTRY, "备份包含未声明条目：$name")
             val accumulator = accumulators[ref.ordinal]
             when (ref.kind) {
+                BackupEntryKind.TEXT -> {
+                    val bytes = readEntryBytes(zip, minOf(limits.maxEntryBytes, limits.maxStringBytes.toLong(), 512L * 1024))
+                    budget.add(bytes.size.toLong())
+                    accumulator.sourceText = decodeUtf8(bytes)
+                }
                 BackupEntryKind.PDF -> {
                     val pdf = accumulator.meta.pdf
                         ?: throw BackupException(BackupError.BAD_MANIFEST, "未声明的 PDF 条目")
@@ -259,12 +264,13 @@ class BackupReader(
         bytes.joinToString("") { "%02x".format(it.toInt() and 0xff) }
 
     private class LibraryAccumulator(val meta: BackupLibraryMeta) {
+        var sourceText: String? = null
         val questions = mutableListOf<com.offlinequiz.app.model.StoredQuestion>()
         val sessions = mutableListOf<com.offlinequiz.app.model.PracticeSessionRecord>()
         val answers = mutableListOf<BackupAnswer>()
 
         fun toLibrary(): BackupLibrary = BackupLibrary(
-            record = meta.record,
+            record = meta.record.copy(sourceText = sourceText),
             questions = questions.toList(),
             sessions = sessions.toList(),
             answers = answers.toList(),

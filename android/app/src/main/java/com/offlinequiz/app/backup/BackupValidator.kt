@@ -38,6 +38,9 @@ object BackupValidator {
             if (library.record.id != meta.record.id) {
                 fail(BackupError.BAD_FIELD, "题库标识与清单不一致")
             }
+            if (meta.hasSourceText != (library.record.sourceText != null) || (meta.hasSourceText && meta.pdf != null)) {
+                fail(BackupError.BAD_MANIFEST, "文字来源与备份清单不一致")
+            }
             validateLibrary(library.record, library.questions, library.sessions, library.answers, limits)
             for (question in library.questions) {
                 if (!questionIds.add(question.id)) fail(BackupError.DUPLICATE_ID, "题目标识重复：${question.id}")
@@ -70,6 +73,13 @@ object BackupValidator {
             fail(BackupError.BAD_FIELD, "题库时间无效")
         }
         if (record.sourcePageCount < 0) fail(BackupError.BAD_FIELD, "来源页数不能为负")
+        record.sourceText?.let { text ->
+            if (text.isBlank() || text.contains('\u0000')) fail(BackupError.BAD_FIELD, "文字来源内容无效")
+            if (text.toByteArray(Charsets.UTF_8).size > minOf(limits.maxStringBytes, 512 * 1024)) {
+                fail(BackupError.TOO_LARGE, "文字来源超过上限")
+            }
+            if (record.sourcePageCount != 0 || header.pdfAvailable) fail(BackupError.BAD_FIELD, "文字来源与 PDF 来源冲突")
+        }
         if (record.schemaVersion < 1) fail(BackupError.BAD_FIELD, "题库结构版本无效")
         if (header.questionCount < 0 || header.questionCount > limits.maxQuestionsPerLibrary) {
             fail(BackupError.TOO_LARGE, "题库题目数量超过上限")

@@ -6,6 +6,8 @@ Quizcrate separates PDF parsing, question models, practice grading, persistence,
 
 ## PDF parsing
 
+v0.3.0 also supports TXT and pasted text through `TextImportParser`, retaining decoded source text and logical line references. The shared `QuestionParser` and `AnswerTableParser` detect mixed types, labeled answers and scoped answer tables. Advanced type/encoding overrides are optional. Room schema 4 adds nullable `libraries.sourceText`; migration 3→4 preserves existing PDF banks. Backup format 2 includes declared `resources/source.txt` entries and still reads format 1; old readers cannot read format 2. See the [format guide](IMPORT_FORMATS.en.md).
+
 PdfBox-Android reads text-based PDFs. Questions are identified using question numbers, options, answers in parentheses, true/false symbols, underlines, and reference-answer markers. There is no OCR or online AI; uncertain content is flagged for correction.
 
 Shared rules live in `tools/pdf-probe/src/pdfprobe/Model.java` and `QuestionParser.java`. Android builds copy these sources through `stageCoreSources`; generated copies are not maintained separately.

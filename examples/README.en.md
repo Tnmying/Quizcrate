@@ -1,11 +1,16 @@
 # Original five-type question sample
 
+v0.3.0 supports the [five-question template](offlinequiz-import-template.txt), with all five types and two alternatives per blank in question 4. See the [format guide](../docs/IMPORT_FORMATS.en.md), [mixed example](offlinequiz-mixed-example.txt), and [sectioned answer table](offlinequiz-section-answers-example.txt).
+
 [简体中文](README.md) | **English**
 
 This small, original sample covers all five question types and can be used to check import, parsing, practice, and backup. It contains no excerpts from private question banks. **The PDF and expected answer strings are in Chinese.**
 
 ## Files
 
+- `offlinequiz-section-answers-example.txt`: four synthetic questions demonstrating section number resets, local answer keys, full-width structural tokens, and multiple answer entries on one line. Use automatic recognition.
+- `offlinequiz-mixed-example.txt`: ten synthetic mixed questions, with and without per-question type tags. Automatic mode should recognize two questions of each supported type without a document-wide type selection.
+- `offlinequiz-text-example.txt`: UTF-8 fixture for v0.3.0, with one question per supported type (five total). Select the TXT file or paste its content using default automatic recognition. Multiple fill-in answers use `||` as the separator.
 - `offlinequiz-example.pdf`: one-page A4 PDF with a text layer and all five question types.
 - `MakeExamplePdf.java`: PDFBox 2.0.27 generator; includes question text, answers, and underline positions.
 - `prepare-example-font.py`: removes compatibility-range cmap mappings from a local Noto Serif SC font so PDFBox does not emit Kangxi radicals such as `U+2F00` instead of `U+4E00`.

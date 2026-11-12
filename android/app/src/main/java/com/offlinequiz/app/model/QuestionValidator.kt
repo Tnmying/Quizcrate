@@ -19,6 +19,7 @@ object QuestionValidator {
             QuestionTypes.SHORT_ANSWER -> {
                 if (question.referenceAnswer.isNullOrBlank()) errors += "简答题参考答案不能为空"
             }
+            else -> errors += "请确认题型后保存"
         }
         return errors.distinct()
     }

@@ -9,7 +9,13 @@ import androidx.lifecycle.viewModelScope
 import com.offlinequiz.app.OfflineQuizApplication
 import com.offlinequiz.app.data.RepositoryException
 import com.offlinequiz.app.model.LibrarySummary
+import com.offlinequiz.app.model.PracticeSessionSummary
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -21,9 +27,31 @@ class LibraryListViewModel(application: Application) : AndroidViewModel(applicat
     private val app = application as OfflineQuizApplication
     private val repository = app.repository
 
-    val libraries: StateFlow<List<LibrarySummary>> = repository.observeSummaries()
-        .catch { emit(emptyList()) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    var librariesLoading by mutableStateOf(true)
+        private set
+    var librariesError by mutableStateOf<String?>(null)
+        private set
+    private val reload = MutableStateFlow(0)
+    fun retryLibraries() { reload.value++ }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val libraries: StateFlow<List<LibrarySummary>> = reload.flatMapLatest {
+        repository.observeSummaries()
+            .onStart { librariesLoading = true; librariesError = null }
+            .onEach { librariesLoading = false }
+            .catch { librariesLoading = false; librariesError = "题库读取失败，请重试"; emit(emptyList()) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    suspend fun latestPractice(libraries: List<LibrarySummary>): PracticeSessionSummary? =
+        withContext(Dispatchers.IO) {
+            com.offlinequiz.app.model.latestUnfinishedPractice(
+                libraries.mapNotNull { app.practiceRepository.activeSession(it.library.id) }
+            )
+        }
+
+    suspend fun learningStats(libraries: List<LibrarySummary>) = withContext(Dispatchers.IO) {
+        libraries.associate { it.library.id to app.practiceStatsRepository.libraryReport(it.library.id).overview }
+    }
 
     var message by mutableStateOf<String?>(null)
         private set

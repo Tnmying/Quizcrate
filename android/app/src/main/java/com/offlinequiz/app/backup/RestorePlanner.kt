@@ -111,7 +111,7 @@ object RestorePlanner {
             sessionTotal += sessions.size
             answerTotal += answers.size
             pendingReview += questions.count(QuestionReview::needsAttention)
-            if (pdf != null) pdfIncluded += 1 else pdfMissing += 1
+            if (pdf != null) pdfIncluded += 1 else if (library.sourceText == null) pdfMissing += 1
 
             RestoreLibrary(
                 library = library,
@@ -130,6 +130,7 @@ object RestorePlanner {
                 answerCount = answerTotal,
                 pdfIncludedLibraries = pdfIncluded,
                 pdfMissingLibraries = pdfMissing,
+                textSourceLibraries = restored.count { it.library.sourceText != null },
                 pendingReviewQuestions = pendingReview,
                 activeSessions = active,
                 completedSessions = completed,

@@ -3,6 +3,7 @@ package com.offlinequiz.app
 import android.app.Application
 import android.net.Uri
 import android.util.Log
+import android.provider.OpenableColumns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -48,24 +49,60 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
     var libraryName by mutableStateOf("")
         private set
 
+    var inputText by mutableStateOf("")
+    var defaultType by mutableStateOf("unknown")
+    var encoding by mutableStateOf("自动（UTF-8）")
+
+    fun importText() {
+        if (state is ImportUiState.Parsing || state is ImportUiState.Saving) return
+        sourceUri = null
+        val text = inputText
+        val type = defaultType
+        state = ImportUiState.Parsing
+        viewModelScope.launch {
+            try {
+                val imported = withContext(Dispatchers.Default) { TextImportParser.parse(text, defaultType = type) }
+                libraryName = "新文字题库"
+                state = ImportUiState.Preview(imported, libraryName)
+            } catch (e: IllegalArgumentException) {
+                state = ImportUiState.Error(e.message ?: "文字识别失败")
+            }
+        }
+    }
+
     fun importPdf(uri: Uri) {
         if (state is ImportUiState.Parsing || state is ImportUiState.Saving) return
         sourceUri = uri
+        val selectedType = defaultType
+        val selectedEncoding = encoding
         libraryName = ""
         state = ImportUiState.Parsing
         viewModelScope.launch {
             try {
                 val imported = withContext(Dispatchers.IO) {
-                    PdfBoxAndroidParser.parse(getApplication(), uri)
+                    val resolver = app.contentResolver
+                    val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                        if (it.moveToFirst()) it.getString(0) else null
+                    }.orEmpty()
+                    if (name.endsWith(".txt", true) || resolver.getType(uri) == "text/plain") {
+                        val text = resolver.openInputStream(uri)?.use { TextImportParser.decode(it, selectedEncoding) }
+                            ?: throw IllegalArgumentException("无法读取所选文字文件")
+                        TextImportParser.parse(text, name.ifBlank { "文字题库.txt" }, selectedType)
+                    } else {
+                        PdfBoxAndroidParser.parse(getApplication(), uri, selectedType)
+                    }
                 }
                 val suggested = suggestedName(imported.fileName)
+                imported.sourceText?.let { inputText = it }
                 libraryName = suggested
                 state = ImportUiState.Preview(imported, suggested)
             } catch (e: PdfImportException) {
                 state = ImportUiState.Error(e.message ?: "导入失败，请重试")
+            } catch (e: IllegalArgumentException) {
+                state = ImportUiState.Error(e.message ?: "文字识别失败")
             } catch (e: Exception) {
                 Log.e("OfflineQuiz", "PDF import failed", e)
-                state = ImportUiState.Error("导入失败，请重试或换一个 PDF")
+                state = ImportUiState.Error("导入失败，请重试或换一个文件")
             }
         }
     }
@@ -82,7 +119,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
     fun saveLibrary() {
         val preview = state as? ImportUiState.Preview ?: return
         val uri = sourceUri
-        if (uri == null) {
+        if (uri == null && preview.imported.sourceText == null) {
             state = preview.copy(saveError = "文件选择结果已失效，请重新选择 PDF")
             return
         }
@@ -100,7 +137,8 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                         fileName = preview.imported.fileName,
                         pageCount = preview.imported.pageCount,
                         result = preview.imported.result,
-                        archive = UriPdfArchive(app.pdfStore, app.contentResolver, uri)
+                        archive = if (preview.imported.sourceText == null && uri != null) UriPdfArchive(app.pdfStore, app.contentResolver, uri) else null,
+                        sourceText = preview.imported.sourceText
                     )
                 }
                 state = ImportUiState.Saved(libraryId)

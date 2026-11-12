@@ -16,8 +16,12 @@ object PageMotion {
     fun between(from: AppRouteState, to: AppRouteState): PageMotionStyle {
         if (key(from) == key(to)) return PageMotionStyle.NONE
         val returnRoute = when (from.route) {
-            Route.LIBRARY, Route.IMPORT, Route.BACKUP -> Route.HOME
-            Route.QUESTIONS, Route.WRONGBOOK -> Route.LIBRARY
+            Route.LIBRARY -> from.libraryReturn
+            Route.IMPORT -> Route.HOME
+            Route.BACKUP -> from.backupReturn
+            Route.WRONGBOOK -> from.wrongbookReturn
+            Route.QUESTIONS -> Route.LIBRARY
+            Route.RECORDS, Route.HELP, Route.ABOUT -> Route.PROFILE
             Route.EDITOR -> from.editorReturn
             Route.HISTORY -> from.historyReturn
             Route.PRACTICE -> from.practiceReturn

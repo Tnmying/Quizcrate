@@ -109,11 +109,10 @@ object PracticeJudge {
         return question.answers.indices.all { index ->
             val user = normalizeFillText(answer.blankAnswers[index])
             if (user.isEmpty()) return@all false
-            val reference = normalizeFillText(question.answers[index])
-            val accepted = question.acceptableAnswers.getOrNull(index).orEmpty()
+            val accepted = FillAnswerVariants.candidates(question.answers[index], question.acceptableAnswers.getOrNull(index).orEmpty())
                 .map { normalizeFillText(it) }
                 .filter { it.isNotEmpty() }
-            user == reference || user in accepted
+            user in accepted
         }
     }
 }
@@ -130,7 +129,7 @@ object PracticeEligibility {
     /** Single source of truth for the "can this question be practiced" rules. */
     fun classify(question: StoredQuestion): EligibilityStatus {
         if (!PracticeJudge.isSupportedType(question.type)) return EligibilityStatus.UNSUPPORTED_TYPE
-        if (!question.confirmed && question.originalNeedsReview) return EligibilityStatus.NEEDS_REVIEW
+        if (!question.confirmed && question.originalNeedsReview && !FillAnswerVariants.hasOnlyObsoleteVariantWarning(question)) return EligibilityStatus.NEEDS_REVIEW
         if (!isStructurallyPracticable(question)) return EligibilityStatus.STRUCTURE_INVALID
         return EligibilityStatus.ELIGIBLE
     }

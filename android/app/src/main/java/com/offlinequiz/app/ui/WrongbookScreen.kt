@@ -1,6 +1,9 @@
 package com.offlinequiz.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.collectAsState
+import com.offlinequiz.app.viewmodel.LibraryListViewModel
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -19,18 +22,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.offlinequiz.app.ui.MotionAlertDialog as AlertDialog
 import com.offlinequiz.app.ui.WarmButton as Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -48,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.offlinequiz.app.model.PracticeModes
 import com.offlinequiz.app.model.PracticeQuestionStats
 import com.offlinequiz.app.model.PracticeSources
+import com.offlinequiz.app.model.PracticeState
 import com.offlinequiz.app.model.QuestionTypes
 import com.offlinequiz.app.viewmodel.ActivePracticeState
 import com.offlinequiz.app.viewmodel.WrongbookFilter
@@ -58,14 +58,25 @@ import com.offlinequiz.app.viewmodel.WrongbookViewModel
 fun WrongbookScreen(
     libraryId: String,
     onBack: () -> Unit,
-    onOpenPractice: (String) -> Unit,
+    onOpenPractice: (String, PracticeState?) -> Unit,
     onOpenHistory: (String) -> Unit,
     onEditQuestion: (String) -> Unit
 ) {
     val viewModel: WrongbookViewModel = viewModel(key = "wrongbook-$libraryId")
+    val libraryList: LibraryListViewModel = viewModel()
+    val libraries by libraryList.libraries.collectAsState()
+    val libraryName = libraries.firstOrNull { it.library.id == libraryId }?.library?.name
     val list = rememberLazyListState()
-    val seek = rememberFastScrollSeek(list)
     val scope = rememberCoroutineScope()
+    var query by rememberSaveable { mutableStateOf("") }
+    val keyword = query.trim()
+    val visible = viewModel.visible
+    val matches = remember(visible, keyword) {
+        visible.filter { stats ->
+            stats.stem.contains(keyword, ignoreCase = true) ||
+                stats.optionTexts.any { it.contains(keyword, ignoreCase = true) }
+        }
+    }
     var savedFilter by rememberSaveable { mutableStateOf(viewModel.filter.name) }
     LaunchedEffect(libraryId) {
         viewModel.selectFilter(WrongbookFilter.valueOf(savedFilter))
@@ -88,10 +99,10 @@ fun WrongbookScreen(
         }
     }
 
-    LaunchedEffect(viewModel.startedPracticeId) {
-        viewModel.startedPracticeId?.let { sessionId ->
+    LaunchedEffect(viewModel.startedPractice) {
+        viewModel.startedPractice?.let { started ->
             viewModel.consumeStartedPractice()
-            onOpenPractice(sessionId)
+            onOpenPractice(started.sessionId, started.initialState)
         }
     }
 
@@ -100,12 +111,14 @@ fun WrongbookScreen(
         viewModel.activePracticeState != ActivePracticeState.FAILED
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text("错题本")
-                }
-            )
+            QuestionSearchTopBar(query, onQueryChange = {
+                query = it
+                list.requestScrollToItem(0)
+            }) {
+                Text(libraryName?.let { "$it · 错题" } ?: "错题本", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
@@ -131,7 +144,7 @@ fun WrongbookScreen(
                 Text(viewModel.error ?: "统计数据读取失败")
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { if (viewModel.tryLeaveScreen()) onBack() }, modifier = Modifier.weight(1f)) { Text("返回题库") }
+                    Button(onClick = { if (viewModel.tryLeaveScreen()) onBack() }, modifier = Modifier.weight(1f)) { Text("返回上一页") }
                     Button(onClick = viewModel::retry, modifier = Modifier.weight(1f)) { Text("重试") }
                 }
             }
@@ -147,24 +160,19 @@ fun WrongbookScreen(
             else -> Column(Modifier.fillMaxSize().padding(padding)) {
 
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        GlassFilterButton(
                             selected = viewModel.filter == WrongbookFilter.DUE,
                             onClick = { selectFilter(WrongbookFilter.DUE) },
                             label = { Text("待复习 ${viewModel.due.size}") }
                         )
-                        FilterChip(
+                        GlassFilterButton(
                             selected = viewModel.filter == WrongbookFilter.ALL,
                             onClick = { selectFilter(WrongbookFilter.ALL) },
                             label = { Text("全部历史错题 ${viewModel.wrongbook.size}") }
                         )
                     }
                 
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
+                    GlassPanel(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 "错题重练",
@@ -184,18 +192,18 @@ fun WrongbookScreen(
                                 onRetry = viewModel::retryActivePractice
                             )
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
+                                GlassActionButton(
                                     modifier = Modifier.weight(1f),
                                     onClick = { viewModel.startPractice(PracticeModes.SEQUENTIAL) },
                                     enabled = rePracticeEnabled
-                                ) { Text("顺序重练") }
-                                Button(
+                                ) { ActionLabel(AppIcons.Sequential, "顺序重练") }
+                                GlassActionButton(
                                     modifier = Modifier.weight(1f),
                                     onClick = { viewModel.startPractice(PracticeModes.RANDOM) },
                                     enabled = rePracticeEnabled
-                                ) { Text("随机重练") }
+                                ) { ActionLabel(AppIcons.Random, "随机重练") }
                             }
-                            if (viewModel.starting) {
+                            if (viewModel.starting && !viewModel.startingSingleReview) {
                                     Text(
                                         if (viewModel.committing) {
                                             "正在创建新一轮…"
@@ -242,10 +250,12 @@ fun WrongbookScreen(
 
 
 
-                if (viewModel.visible.isEmpty()) {
+                if (matches.isEmpty()) {
                     item {
                         Text(
-                            if (viewModel.filter == WrongbookFilter.DUE) {
+                            if (keyword.isNotEmpty()) {
+                                "没有找到匹配的错题"
+                            } else if (viewModel.filter == WrongbookFilter.DUE) {
                                 "没有待复习的错题。"
                             } else {
                                 "还没有历史错题；先做几道练习吧。"
@@ -256,7 +266,7 @@ fun WrongbookScreen(
                         )
                     }
                 } else {
-                    items(viewModel.visible, key = { it.questionId }) { stats ->
+                    items(matches, key = { it.questionId }) { stats ->
                         WrongbookRow(
                             stats = stats,
                             actionsEnabled = !viewModel.committing && !viewModel.starting,
@@ -268,14 +278,8 @@ fun WrongbookScreen(
                     }
                 }
             }
-            if (viewModel.visible.isNotEmpty()) {
-                QuestionFastScroller(
-                    count = viewModel.visible.size,
-                    currentIndex = if (!list.canScrollForward && list.canScrollBackward)
-                        viewModel.visible.lastIndex
-                    else list.firstVisibleItemIndex.coerceIn(0, viewModel.visible.lastIndex),
-                    onSeek = seek
-                )
+            if (matches.isNotEmpty()) {
+                QuestionFastScroller(count = matches.size, list = list)
             }
             }
             }
@@ -319,7 +323,7 @@ fun WrongbookScreen(
         )
     }
 
-    if (viewModel.committing) {
+    if (viewModel.committing && !viewModel.startingSingleReview) {
         // Modal wait: covers every touch target (row history/review, top bar, filters) so no
         // navigation callback can slip through while the session write is in flight.
         AlertDialog(
@@ -369,8 +373,8 @@ private fun WrongbookRow(
     onOpenHistory: () -> Unit,
     onReview: () -> Unit
 ) {
-    Card(Modifier.fillMaxWidth().clickable(enabled = actionsEnabled, onClick = onReview)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    GlassPanel {
+        Column(Modifier.clickable(enabled = actionsEnabled, onClick = onReview).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 "第 ${stats.position + 1} 题 · ${QuestionTypes.label(stats.type)} · 原编号 " +
                     (stats.originalNumber ?: "—"),
@@ -409,7 +413,7 @@ private fun WrongbookRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onOpenHistory, enabled = actionsEnabled, modifier = Modifier.fillMaxWidth()) { Text("查看历史") }
+                GlassActionButton(onClick = onOpenHistory, enabled = actionsEnabled, modifier = Modifier.fillMaxWidth()) { ActionLabel(AppIcons.History, "查看历史") }
             }
         }
     }

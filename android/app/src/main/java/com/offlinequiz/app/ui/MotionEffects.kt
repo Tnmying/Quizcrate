@@ -23,7 +23,7 @@ fun DestinationTransition(destinationKey: String, style: PageMotionStyle, conten
     LaunchedEffect(destinationKey) {
         progress.animateTo(0f, tween(240, easing = FastOutSlowInEasing))
     }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize(), color = androidx.compose.ui.graphics.Color.Transparent) {
         BoxWithConstraints(Modifier.fillMaxSize().clipToBounds()) {
             val width = constraints.maxWidth.toFloat()
             Box(Modifier.fillMaxSize().graphicsLayer {

@@ -18,12 +18,13 @@ data class ImportedPdf(
     val glyphCount: Int,
     val underlineCount: Int,
     val matchedUnderlineCount: Int,
-    val result: Model.ParseResult
+    val result: Model.ParseResult,
+    val sourceText: String? = null
 )
 
 object PdfBoxAndroidParser {
 
-    fun parse(context: Context, uri: Uri): ImportedPdf {
+    fun parse(context: Context, uri: Uri, defaultType: String = "unknown"): ImportedPdf {
         val fileName = displayName(context, uri)
         val temp = File.createTempFile("offlinequiz-import-", ".pdf", context.cacheDir)
         try {
@@ -50,7 +51,7 @@ object PdfBoxAndroidParser {
                 if (geometry.glyphCount == 0) {
                     throw PdfImportException("PDF 没有可提取的文字层，暂不支持扫描件")
                 }
-                val result = QuestionParser.parse(geometry)
+                val result = QuestionParser.parse(geometry, defaultType)
                 if (result.questions.isEmpty()) {
                     throw PdfImportException("没有识别到题目，请确认文件包含文字型题库")
                 }

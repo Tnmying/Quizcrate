@@ -6,6 +6,7 @@ import com.offlinequiz.app.model.QuestionTypes
 import com.offlinequiz.app.model.QuestionValidator
 import com.offlinequiz.app.model.SaveOutcome
 import com.offlinequiz.app.model.StoredQuestion
+import com.offlinequiz.app.model.withFillAnswerVariants
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import pdfprobe.Model
@@ -39,12 +40,22 @@ class LibraryRepository(
         fileName: String,
         pageCount: Int,
         result: Model.ParseResult,
-        archive: PdfArchive
+        archive: PdfArchive? = null,
+        sourceText: String? = null
     ): String {
         val safeName = validateName(name)
+        if (archive == null && sourceText.isNullOrBlank()) {
+            throw RepositoryException("缺少来源内容，题库未创建")
+        }
+        if (archive != null && sourceText != null) {
+            throw RepositoryException("来源类型冲突，题库未创建")
+        }
+        if (sourceText != null && sourceText.toByteArray(Charsets.UTF_8).size > 512 * 1024) {
+            throw RepositoryException("文字内容超过 512 KB，请分批导入")
+        }
         val libraryId = idFactory()
         val relativePath = try {
-            archive.copy(libraryId)
+            archive?.copy(libraryId)
         } catch (e: PdfCopyException) {
             throw RepositoryException("保存 PDF 私有副本失败，题库未创建：${e.message}", e)
         } catch (e: Exception) {
@@ -64,7 +75,8 @@ class LibraryRepository(
                 sourceFileName = fileName,
                 sourcePageCount = pageCount,
                 pdfRelativePath = relativePath,
-                schemaVersion = QuizDatabase.VERSION
+                schemaVersion = QuizDatabase.VERSION,
+                sourceText = sourceText
             )
             store.createLibrary(record, questions)
             committed = true
@@ -75,7 +87,7 @@ class LibraryRepository(
             throw RepositoryException("保存题库失败，没有覆盖任何已有题库", e)
         } finally {
             if (!committed) {
-                runCatching { archive.delete(relativePath) }
+                if (relativePath != null) runCatching { archive?.delete(relativePath) }
             }
         }
     }
@@ -102,7 +114,8 @@ class LibraryRepository(
 
         // Empty "acceptable answer" editor rows are not meaningful data; drop them before validation
         // and comparison while keeping the answer list order unchanged.
-        val candidate = question.copy(acceptableAnswers = question.normalizedAcceptableAnswers())
+        val normalized = question.withFillAnswerVariants()
+        val candidate = normalized.copy(acceptableAnswers = normalized.normalizedAcceptableAnswers())
         val errors = QuestionValidator.validate(candidate)
         if (errors.isNotEmpty()) return SaveOutcome.Invalid(errors)
 

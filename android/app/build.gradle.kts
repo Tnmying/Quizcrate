@@ -16,7 +16,7 @@ ksp {
 
 val stageCoreSources = tasks.register<Copy>("stageCoreSources") {
     from(project.file("../../tools/pdf-probe/src/pdfprobe")) {
-        include("Model.java", "QuestionParser.java")
+        include("Model.java", "QuestionParser.java", "AnswerTableParser.java")
     }
     into(layout.buildDirectory.dir("generated/core-java/pdfprobe"))
 }
@@ -29,8 +29,8 @@ android {
         applicationId = "com.offlinequiz.app"
         minSdk = 29
         targetSdk = 36
-        versionCode = 29
-        versionName = "0.1.0"
+        versionCode = 31
+        versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -100,6 +100,8 @@ dependencies {
     ksp("androidx.room:room-compiler:2.8.5")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+    // Instrumentation loads serialization-core from the target app first.
+    debugRuntimeOnly("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
@@ -108,4 +110,6 @@ dependencies {
     androidTestImplementation("androidx.test:core:1.7.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.room:room-testing:2.8.5")
+    // Room's schema serializers need the default interface method introduced in 1.8.
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 }

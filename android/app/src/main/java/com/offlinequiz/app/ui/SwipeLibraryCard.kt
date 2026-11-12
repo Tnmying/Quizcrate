@@ -15,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -35,7 +37,7 @@ internal fun SwipeLibraryCard(
     onDelete: () -> Unit,
     content: @Composable (Modifier) -> Unit
 ) {
-    BoxWithConstraints(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))) {
+    BoxWithConstraints(Modifier.fillMaxWidth().clip(RoundedCornerShape(GlassCardRadius))) {
         val actionsWidth = minOf(180.dp, maxWidth * 0.6f)
         val widthPx = with(LocalDensity.current) { actionsWidth.toPx() }
         var dragging by remember { mutableStateOf(false) }
@@ -45,9 +47,15 @@ internal fun SwipeLibraryCard(
             if (dragging) snap() else tween(160), label = "librarySwipe")
         val position by rememberUpdatedState(animated)
         val reveal by rememberUpdatedState(onReveal)
-        Box(Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
+        Box(
+            Modifier.matchParentSize().drawWithContent {
+                // Paint actions only in the strip exposed by the moving glass card.
+                clipRect(left = size.width + animated.roundToInt()) { this@drawWithContent.drawContent() }
+            },
+            contentAlignment = Alignment.CenterEnd
+        ) {
             Row(Modifier.width(actionsWidth).fillMaxHeight(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.weight(1f).fillMaxHeight().background(Color(0xFFF6B575))
+                Box(Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colorScheme.primaryContainer)
                     .clickable(role = Role.Button, onClick = onDetails), contentAlignment = Alignment.Center) {
                     Column(Modifier.padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {

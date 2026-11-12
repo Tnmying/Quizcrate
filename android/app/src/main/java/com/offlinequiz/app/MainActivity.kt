@@ -1,14 +1,22 @@
 package com.offlinequiz.app
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.*
+import com.offlinequiz.app.ui.*
+import com.offlinequiz.app.model.PracticeState
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,6 +26,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 import com.offlinequiz.app.ui.AppRouteState
 import com.offlinequiz.app.ui.PageMotion
 import com.offlinequiz.app.ui.PageMotionTracker
@@ -36,24 +46,50 @@ import com.offlinequiz.app.ui.WrongbookScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val preferences = getSharedPreferences("appearance", MODE_PRIVATE)
+        var themeMode by mutableStateOf(ThemeMode.fromPreference(preferences.getString("theme_mode", null)))
         setContent {
-            OfflineQuizTheme {
-                AppNavigation()
+            val dark = themeMode.isDark(isSystemInDarkTheme())
+            OfflineQuizTheme(dark) {
+                val background = MaterialTheme.colorScheme.background.toArgb()
+                SideEffect { updateSystemBars(dark, background) }
+                AppNavigation(themeMode) { selected ->
+                    preferences.edit().putString("theme_mode", selected.name).apply()
+                    themeMode = selected
+                }
             }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun updateSystemBars(dark: Boolean, background: Int) {
+        if (Build.VERSION.SDK_INT < 35) {
+            window.statusBarColor = background
+            window.navigationBarColor = background
+        }
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !dark
+            isAppearanceLightNavigationBars = !dark
         }
     }
 }
 
 @Composable
-private fun AppNavigation() {
+private fun AppNavigation(themeMode: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit) {
     var nav by rememberSaveable(stateSaver = AppRouteState.Saver) { mutableStateOf(AppRouteState()) }
     var importSession by rememberSaveable { mutableIntStateOf(0) }
     var importUri by remember { mutableStateOf<Uri?>(null) }
+
+    var preparedReview by remember { mutableStateOf<PracticeState?>(null) }
 
     val managerStates = rememberSaveableStateHolder()
 
     val motionTracker = remember { PageMotionTracker(nav) }
     val motionStyle = motionTracker.next(nav)
+    val primary = nav.route in setOf(Route.HOME, Route.WRONGBOOK_INDEX, Route.PROFILE)
+    BackHandler(enabled = nav.route == Route.WRONGBOOK_INDEX || nav.route == Route.PROFILE) { nav = nav.copy(route = Route.HOME) }
+    Column(Modifier.fillMaxSize().glassBackdrop()) {
+    Box(Modifier.weight(1f)) {
     DestinationTransition(PageMotion.key(nav), motionStyle) {
     when (nav.route) {
         Route.IMPORT -> ImportScreen(
@@ -123,7 +159,8 @@ private fun AppNavigation() {
                 WrongbookScreen(
                     libraryId = nav.libraryId,
                     onBack = { nav = nav.backFromWrongbook() },
-                    onOpenPractice = { sessionId ->
+                    onOpenPractice = { sessionId, initialState ->
+                        preparedReview = initialState
                         nav = nav.openPractice(sessionId, Route.WRONGBOOK)
                     },
                     onOpenHistory = { qid -> nav = nav.openHistory(qid, Route.WRONGBOOK) },
@@ -152,7 +189,11 @@ private fun AppNavigation() {
             } else {
                 PracticeScreen(
                     sessionId = nav.practiceSessionId,
-                    onBack = { nav = nav.backFromPractice() },
+                    initialState = preparedReview?.takeIf { it.session.id == nav.practiceSessionId },
+                    onBack = {
+                        preparedReview = null
+                        nav = nav.backFromPractice()
+                    },
                     onCorrectQuestion = { nav = nav.openEditor(it, Route.PRACTICE) }
                 )
             }
@@ -176,16 +217,32 @@ private fun AppNavigation() {
             onOpenLibrary = { id -> nav = nav.openLibrary(id) }
         )
 
-        else -> HomeScreen(
+        Route.PROFILE -> managerStates.SaveableStateProvider("profile") {
+            ProfileScreen(themeMode, onThemeModeChange) { destination ->
+                nav = if (destination == Route.BACKUP) nav.startBackup() else nav.copy(route = destination)
+            }
+        }
+        Route.WRONGBOOK_INDEX -> managerStates.SaveableStateProvider("wrongbook-index") {
+            LearningOverviewScreen(true, {}, { id ->
+                managerStates.removeState("wrongbook-$id")
+                nav = nav.openWrongbook(id)
+            })
+        }
+        Route.RECORDS -> managerStates.SaveableStateProvider("records") { LearningOverviewScreen(false, { nav = nav.copy(route = Route.PROFILE) }, { id -> nav = nav.openLibrary(id) }) }
+        Route.HELP, Route.ABOUT -> InformationScreen(nav.route == Route.ABOUT) { nav = nav.copy(route = Route.PROFILE) }
+        else -> managerStates.SaveableStateProvider("home") { HomeScreen(
             onImportPdf = { uri ->
                 importSession += 1
                 importUri = uri
                 nav = nav.startImport()
             },
             onOpenLibrary = { id -> nav = nav.openLibrary(id) },
-            onBackupRestore = { nav = nav.startBackup() }
-        )
+            onContinue = { session -> nav = nav.copy(libraryId = session.libraryId).openPractice(session.id, Route.HOME) }
+        ) }
     }
+    }
+    }
+    if (primary) MainTabs(nav.route) { nav = nav.copy(route = it) }
     }
 }
 

@@ -162,9 +162,14 @@ class BackupRoomDatabaseTest {
         store.insert(plan)
         val after = store.readSnapshot()
         assertEquals(2, after.libraries.size)
-        assertEquals(1, after.libraries.count { it.record.name == "测试题库" })
-        assertEquals(1, after.libraries.count { it.sessions.any { s -> s.status == PracticeStatuses.COMPLETED } })
-        assertEquals(1, after.libraries.flatMap { it.answers }.size)
+        val original = snapshot.libraries.single()
+        assertEquals(original, after.libraries.single { it.record.id == original.record.id })
+        val restored = after.libraries.single { it.record.id != original.record.id }
+        assertEquals(original.record.name, restored.record.name)
+        assertEquals(plan.libraries.single().questions, restored.questions)
+        assertEquals(plan.libraries.single().sessions, restored.sessions)
+        val expectedAnswers = plan.libraries.single().answers.map { BackupAnswer(it.answer, it.referenceSnapshot) }
+        assertEquals(expectedAnswers, restored.answers)
     }
 
     @Test
