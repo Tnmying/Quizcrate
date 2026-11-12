@@ -71,6 +71,8 @@ TXT／粘贴内容单次上限 **512 KiB、20000 行**（解码后的 UTF-8 内�
 
 ## 从源码构建
 
+下载 [v0.3.0 对应源码快照](https://github.com/Tnmying/Quizcrate/archive/faa73d0b193d56c58e377edbe8b37770077d6b9a.zip)。目前发布页的 `v0.3.0` 标签仍指向上传 APK 时的旧提交，自动生成的源码归档尚未对应新版；请使用此快照或当前 `main` 分支。
+
 当前应用源码已更新到 v0.3.0（内部版本号 31）。正式安装包使用维护者的私有签名；自行构建的 Debug 包不能直接覆盖正式签名版。
 
 需要 **JDK 21**、Android SDK **platform 36 / build-tools 36.0.0**。项目附带 Gradle **8.13** wrapper；AGP **8.13.2**、Kotlin **2.2.21**。首次下载 Gradle/Maven 依赖需要联网，手机运行仍完全离线。

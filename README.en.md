@@ -71,6 +71,8 @@ The sample has seven questions, including one deliberately missing an answer to 
 
 ## Building from source
 
+Download the [v0.3.0 source snapshot](https://github.com/Tnmying/Quizcrate/archive/faa73d0b193d56c58e377edbe8b37770077d6b9a.zip). The release’s `v0.3.0` tag still points to the older commit used when uploading the APK, so its automatic source archives do not yet match this version. Use this snapshot or the current `main` branch.
+
 Application source is updated to v0.3.0 (version code 31). Release APKs use the maintainer’s private signing key; a locally built debug APK cannot replace the release-signed app in place.
 
 Requires **JDK 21**, Android SDK **platform 36 / build-tools 36.0.0**. The repository includes the Gradle **8.13** wrapper and uses AGP **8.13.2** and Kotlin **2.2.21**. The first build needs network access to download Gradle/Maven dependencies; the app itself runs offline.
